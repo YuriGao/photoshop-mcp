@@ -1,5 +1,7 @@
 # Available Tools
 
+**118 tools total** — 102 atomic `photoshop_*` tools plus 16 recipe `photoshop_recipe_*` workflows (single undo step each).
+
 Reference for all atomic `photoshop_*` MCP tools exposed by this server (parameters, examples, and return shapes).
 
 ← Back to [README](../README.md)
@@ -49,6 +51,32 @@ Get information about the active document.
 ```javascript
 // Example: Get current document details
 photoshop_get_document_info()
+```
+
+#### `photoshop_list_documents`
+List all open documents with id, name, dimensions, resolution, and active-tab flag (read-only).
+
+**Parameters:** none
+
+```javascript
+// Example: Discover document_id values before switching tabs
+photoshop_list_documents()
+```
+
+#### `photoshop_set_active_document`
+Switch the active document tab. Provide exactly one identifier.
+
+**Parameters:**
+- `document_id` (number, optional): Unique id from `photoshop_list_documents` (preferred)
+- `index` (number, optional): Zero-based tab order (leftmost is 0)
+- `document_name` (string, optional): Document name (ambiguous if multiple tabs share the name)
+
+```javascript
+// Example: Activate by unique id
+photoshop_set_active_document({ document_id: 42 })
+
+// Example: Activate leftmost tab
+photoshop_set_active_document({ index: 0 })
 ```
 
 #### `photoshop_save_document`
@@ -406,6 +434,40 @@ photoshop_apply_motion_blur({
 })
 ```
 
+#### `photoshop_apply_high_pass`
+Apply High Pass filter to the active raster layer (edge/detail extraction).
+
+**Parameters:**
+- `radius` (number, required): Edge retention radius in pixels (0.1-250)
+
+```javascript
+// Example: Apply 5px high pass for sharpening workflow
+photoshop_apply_high_pass({ radius: 5 })
+```
+
+**Returns:** JSON `{ ok, summary, details: { filter, radius, context } }`. Fails on text, Smart Object, or Background layers — rasterize first.
+
+#### `photoshop_apply_smart_blur`
+Apply Smart Blur filter (edge-preserving blur) to the active raster layer.
+
+**Parameters:**
+- `radius` (number, required): Blur radius (0.1-100)
+- `threshold` (number, required): Blur threshold (0.1-100)
+- `mode` (string, optional): NORMAL, EDGEONLY, or OVERLAYEDGE (default: NORMAL)
+- `quality` (string, optional): LOW, MEDIUM, or HIGH (default: MEDIUM)
+
+```javascript
+// Example: Subtle edge-preserving blur
+photoshop_apply_smart_blur({
+  radius: 10,
+  threshold: 25,
+  mode: "NORMAL",
+  quality: "MEDIUM"
+})
+```
+
+**Returns:** JSON `{ ok, summary, details: { filter, radius, threshold, mode, quality, context } }`.
+
 ### Color Adjustments
 
 #### `photoshop_adjust_brightness_contrast`
@@ -557,6 +619,16 @@ photoshop_update_text_content({ text: "New Text" })
 
 ### Selections & Masks
 
+#### `photoshop_get_selection_bounds`
+Read the active pixel selection bounds in document pixels (read-only). Does not create or modify selections.
+
+**Returns:** JSON `{ ok, summary, details: { has_selection, bounds?, context } }` where `bounds` is `{ left, top, right, bottom, width, height }` in pixels when `has_selection` is true.
+
+```javascript
+// Example: Verify selection before creating a mask
+photoshop_get_selection_bounds()
+```
+
 #### `photoshop_select_rectangle`
 Create a rectangular selection.
 
@@ -571,6 +643,76 @@ photoshop_select_rectangle({
   right: 500,
   bottom: 400
 })
+```
+
+#### `photoshop_select_ellipse`
+Create an elliptical pixel selection from a bounding box (anti-aliased).
+
+**Parameters:**
+- `left`, `top`, `right`, `bottom` (number, required): Bounding box in pixels (`right` > `left`, `bottom` > `top`)
+
+**Returns:** JSON `{ ok, summary, details: { shape, bounds?, context } }`
+
+```javascript
+// Example: Oval selection for vignette
+photoshop_select_ellipse({
+  left: 50,
+  top: 50,
+  right: 200,
+  bottom: 200
+})
+```
+
+#### `photoshop_expand_selection`
+Expand the active pixel selection outward by pixels.
+
+**Parameters:**
+- `pixels` (number, required): Amount to expand (minimum 1)
+
+**Returns:** JSON `{ ok, summary, details: { pixels, bounds?, context } }`
+
+```javascript
+// Example: Grow a tight subject selection
+photoshop_expand_selection({ pixels: 5 })
+```
+
+#### `photoshop_contract_selection`
+Shrink the active pixel selection inward by pixels.
+
+**Parameters:**
+- `pixels` (number, required): Amount to contract (minimum 1)
+
+**Returns:** JSON `{ ok, summary, details: { pixels, bounds?, context } }`
+
+```javascript
+// Example: Tighten a loose selection
+photoshop_contract_selection({ pixels: 3 })
+```
+
+#### `photoshop_feather_selection`
+Feather (soften) the edges of the active pixel selection.
+
+**Parameters:**
+- `pixels` (number, required): Feather radius in pixels (minimum 1)
+
+**Returns:** JSON `{ ok, summary, details: { pixels, bounds?, context } }`
+
+```javascript
+// Example: Soften edges before fill
+photoshop_feather_selection({ pixels: 2 })
+```
+
+#### `photoshop_save_selection`
+Save the active pixel selection to a new alpha channel.
+
+**Parameters:**
+- `channel_name` (string, optional): Name for the new channel (auto-generated if omitted)
+
+**Returns:** JSON `{ ok, summary, details: { channel_name, context } }`
+
+```javascript
+// Example: Preserve selection for later
+photoshop_save_selection({ channel_name: 'MCP_Test_Sel' })
 ```
 
 #### `photoshop_select_all`
@@ -656,6 +798,31 @@ photoshop_apply_gradient_mask({
   start_pct: 0,
   end_pct: 100
 })
+```
+
+#### `photoshop_create_clipping_mask`
+Create a clipping mask on the active layer (or a named layer). The target layer must sit directly above the base layer it clips into.
+
+**Parameters:**
+- `layer_name` (string, optional): Exact layer name (recursive search). Default: active layer.
+
+```javascript
+// Example: Clip the active layer to the one below
+photoshop_create_clipping_mask()
+
+// Example: Clip a named layer
+photoshop_create_clipping_mask({ layer_name: 'Texture' })
+```
+
+#### `photoshop_release_clipping_mask`
+Release (remove) the clipping mask from the active layer (or a named layer).
+
+**Parameters:**
+- `layer_name` (string, optional): Exact layer name (recursive search). Default: active layer.
+
+```javascript
+// Example: Unclip the active layer
+photoshop_release_clipping_mask()
 ```
 
 ### History & Undo/Redo
@@ -897,6 +1064,55 @@ photoshop_generate_from_datasets({ output_dir: "/Users/me/cards", format: "PNG" 
 ```
 
 **One-shot alternative:** `photoshop_recipe_csv_to_cards` converts a CSV straight into data sets and exports every row (prompt template `ps.csv_to_cards`).
+
+### Smart Objects
+
+#### `photoshop_convert_to_smart_object`
+Convert the active or named layer to an embedded Smart Object (`newPlacedLayer`). Background layers are rejected.
+
+**Parameters:**
+- `layer_name` (string, optional): exact layer name (recursive search)
+
+```javascript
+photoshop_convert_to_smart_object({ layer_name: "Logo" })
+```
+
+#### `photoshop_replace_smart_object_contents`
+Replace embedded Smart Object pixels from a file (`placedLayerReplaceContents`). Preserves transforms and Smart Filters on the layer.
+
+**Parameters:**
+- `file_path` (string, required): absolute path to replacement image
+- `layer_name` (string, optional): Smart Object layer name
+
+```javascript
+photoshop_replace_smart_object_contents({
+  layer_name: "Screen",
+  file_path: "/Users/me/designs/hero.png"
+})
+```
+
+#### `photoshop_edit_smart_object_contents`
+Open Smart Object embedded contents for editing (`placedLayerEditContents`). **Active document becomes the embedded .psb** until you save and close it.
+
+**Parameters:**
+- `layer_name` (string, optional): Smart Object layer name
+
+**Returns:** `parent_document`, `embedded_document`, `layer_name`
+
+```javascript
+photoshop_edit_smart_object_contents({ layer_name: "Product" })
+// ... edit embedded doc, then save/close to return to parent
+```
+
+#### `photoshop_create_smart_object_via_copy`
+Create an independent Smart Object duplicate (`placedLayerMakeCopy`) — unlinked from the original embedded data.
+
+**Parameters:**
+- `layer_name` (string, optional): source Smart Object layer name
+
+```javascript
+photoshop_create_smart_object_via_copy({ layer_name: "Logo" })
+```
 
 ### Image Stacking
 

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Photoshop MCP
   text: Controla Photoshop con IA
-  tagline: Servidor MCP para Cursor, Claude Desktop y lenguaje natural — 102 herramientas, flujos recipe y UI web independiente.
+  tagline: Servidor MCP para Cursor, Claude Desktop y lenguaje natural — 118 herramientas, flujos recipe y UI web independiente.
   image:
     src: /images/readme-hero.png
     alt: Photoshop MCP — Automatización de Photoshop con IA
@@ -24,8 +24,8 @@ features:
     title: Agentes con contexto
     details: get_state, get_preview y get_capabilities antes de cada acción.
   - icon: 🧩
-    title: 102 herramientas MCP
-    details: 86 herramientas atómicas + 16 recipes con un solo paso de deshacer.
+    title: 118 herramientas MCP
+    details: 102 herramientas atómicas + 16 recipes con un solo paso de deshacer.
   - icon: 🖥️
     title: UI web independiente
     details: Chatea con Claude, GPT o Gemini sin IDE.

@@ -256,6 +256,130 @@ async function main(): Promise<void> {
   await t.run('photoshop_rotate_layer', { degrees: 2 });
   await t.run('photoshop_fit_layer_to_document', { fillDocument: false });
 
+  console.log('\n=== Phase 4b: Document session ===');
+  await t.run('photoshop_create_document', { width: 400, height: 300 });
+  {
+    const listResult = await client.callTool({ name: 'photoshop_list_documents', arguments: {} });
+    const listBody = textFrom(listResult);
+    if (listResult.isError) {
+      t.recordPrompt('assert:list_documents_after_create', 'fail', short(listBody), 0);
+      console.log(`  FAIL assert:list_documents_after_create — ${short(listBody)}`);
+    } else {
+      try {
+        const payload = parseJsonFromToolText(listBody) as {
+          ok?: boolean;
+          details?: {
+            count?: number;
+            documents?: Array<{ is_active?: boolean }>;
+          };
+        };
+        const docs = payload.details?.documents ?? [];
+        const activeCount = docs.filter((d) => d.is_active).length;
+        const ok =
+          payload.ok === true &&
+          (payload.details?.count ?? 0) >= 1 &&
+          activeCount === 1;
+        t.recordPrompt(
+          'assert:list_documents_after_create',
+          ok ? 'pass' : 'fail',
+          ok
+            ? `count=${payload.details?.count}, one is_active`
+            : JSON.stringify(payload.details),
+          0
+        );
+        console.log(
+          `  ${ok ? 'OK' : 'FAIL'}  assert:list_documents_after_create — ${ok ? `count=${payload.details?.count}` : short(JSON.stringify(payload.details))}`
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        t.recordPrompt('assert:list_documents_after_create', 'fail', msg, 0);
+        console.log(`  FAIL assert:list_documents_after_create — ${msg}`);
+      }
+    }
+  }
+
+  await t.run('photoshop_open_image', { filePath: testPng });
+  let switchTargetId: number | undefined;
+  {
+    const listResult = await client.callTool({ name: 'photoshop_list_documents', arguments: {} });
+    const listBody = textFrom(listResult);
+    if (listResult.isError) {
+      t.recordPrompt('assert:list_documents_multi', 'fail', short(listBody), 0);
+      console.log(`  FAIL assert:list_documents_multi — ${short(listBody)}`);
+    } else {
+      try {
+        const payload = parseJsonFromToolText(listBody) as {
+          ok?: boolean;
+          details?: {
+            count?: number;
+            documents?: Array<{ id?: number; is_active?: boolean }>;
+          };
+        };
+        const docs = payload.details?.documents ?? [];
+        const inactive = docs.find((d) => d.is_active !== true);
+        switchTargetId = inactive?.id;
+        const ok = payload.ok === true && (payload.details?.count ?? 0) >= 2;
+        t.recordPrompt(
+          'assert:list_documents_multi',
+          ok ? 'pass' : 'fail',
+          ok ? `count=${payload.details?.count}` : JSON.stringify(payload.details),
+          0
+        );
+        console.log(
+          `  ${ok ? 'OK' : 'FAIL'}  assert:list_documents_multi — ${ok ? `count=${payload.details?.count}` : short(JSON.stringify(payload.details))}`
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        t.recordPrompt('assert:list_documents_multi', 'fail', msg, 0);
+        console.log(`  FAIL assert:list_documents_multi — ${msg}`);
+      }
+    }
+  }
+
+  if (switchTargetId !== undefined) {
+    await t.run('photoshop_set_active_document', { document_id: switchTargetId }, { required: true });
+    {
+      const docInfoResult = await client.callTool({
+        name: 'photoshop_get_document_info',
+        arguments: {},
+      });
+      const docInfoBody = textFrom(docInfoResult);
+      if (docInfoResult.isError) {
+        t.recordPrompt('assert:set_active_by_id', 'fail', short(docInfoBody), 0);
+        console.log(`  FAIL assert:set_active_by_id — ${short(docInfoBody)}`);
+      } else {
+        try {
+          const payload = parseJsonFromToolText(docInfoBody) as {
+            document?: { width?: number; height?: number };
+          };
+          const ok = payload.document?.width === 400 && payload.document?.height === 300;
+          t.recordPrompt(
+            'assert:set_active_by_id',
+            ok ? 'pass' : 'fail',
+            ok
+              ? `active doc 400x300 (id ${switchTargetId})`
+              : JSON.stringify(payload.document),
+            0
+          );
+          console.log(
+            `  ${ok ? 'OK' : 'FAIL'}  assert:set_active_by_id — ${ok ? '400x300 document active' : short(JSON.stringify(payload.document))}`
+          );
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          t.recordPrompt('assert:set_active_by_id', 'fail', msg, 0);
+          console.log(`  FAIL assert:set_active_by_id — ${msg}`);
+        }
+      }
+    }
+  } else {
+    t.recordPrompt('assert:set_active_by_id', 'fail', 'no inactive document id captured', 0);
+    console.log('  FAIL assert:set_active_by_id — no inactive document id captured');
+  }
+
+  await t.run('photoshop_set_active_document', { index: 0 }, { required: true });
+  await t.run('photoshop_set_active_document', {}, { expectError: true });
+  await t.run('photoshop_set_active_document', { document_id: 999999999 }, { expectError: true });
+
   console.log('\n=== Phase 5: Layer ordering ===');
   await t.run('photoshop_move_layer_up');
   await t.run('photoshop_move_layer_down');
@@ -270,6 +394,202 @@ async function main(): Promise<void> {
   await t.run('photoshop_execute_script', {
     code: `app.activeDocument.activeLayer = app.activeDocument.artLayers.getByName("MCP_Paint_Renamed"); return { active: app.activeDocument.activeLayer.name };`,
   });
+
+  console.log('\n--- Phase 6a: get_selection_bounds ---');
+  await t.run('photoshop_deselect');
+  {
+    const boundsResult = await client.callTool({ name: 'photoshop_get_selection_bounds', arguments: {} });
+    const boundsBody = textFrom(boundsResult);
+    if (boundsResult.isError) {
+      t.recordPrompt('assert:get_selection_bounds_no_sel', 'fail', short(boundsBody), 0);
+      console.log(`  FAIL assert:get_selection_bounds_no_sel — ${short(boundsBody)}`);
+    } else {
+      try {
+        const payload = parseJsonFromToolText(boundsBody) as {
+          ok?: boolean;
+          details?: { has_selection?: boolean };
+        };
+        const ok = payload.ok === true && payload.details?.has_selection === false;
+        t.recordPrompt(
+          'assert:get_selection_bounds_no_sel',
+          ok ? 'pass' : 'fail',
+          ok ? 'has_selection=false' : JSON.stringify(payload.details),
+          0
+        );
+        console.log(
+          `  ${ok ? 'OK' : 'FAIL'}  assert:get_selection_bounds_no_sel — ${ok ? 'has_selection=false' : short(JSON.stringify(payload.details))}`
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        t.recordPrompt('assert:get_selection_bounds_no_sel', 'fail', msg, 0);
+        console.log(`  FAIL assert:get_selection_bounds_no_sel — ${msg}`);
+      }
+    }
+  }
+
+  const selLeft = 100;
+  const selTop = 100;
+  const selRight = 250;
+  const selBottom = 250;
+  await t.run('photoshop_select_rectangle', {
+    left: selLeft,
+    top: selTop,
+    right: selRight,
+    bottom: selBottom,
+  });
+  {
+    const boundsResult = await client.callTool({ name: 'photoshop_get_selection_bounds', arguments: {} });
+    const boundsBody = textFrom(boundsResult);
+    if (boundsResult.isError) {
+      t.recordPrompt('assert:get_selection_bounds_rect', 'fail', short(boundsBody), 0);
+      console.log(`  FAIL assert:get_selection_bounds_rect — ${short(boundsBody)}`);
+    } else {
+      try {
+        const payload = parseJsonFromToolText(boundsBody) as {
+          ok?: boolean;
+          details?: {
+            has_selection?: boolean;
+            bounds?: { left?: number; top?: number; right?: number; bottom?: number };
+          };
+        };
+        const b = payload.details?.bounds;
+        const ok =
+          payload.ok === true &&
+          payload.details?.has_selection === true &&
+          b?.left === selLeft &&
+          b?.top === selTop &&
+          b?.right === selRight &&
+          b?.bottom === selBottom;
+        t.recordPrompt(
+          'assert:get_selection_bounds_rect',
+          ok ? 'pass' : 'fail',
+          ok ? `bounds=[${selLeft},${selTop},${selRight},${selBottom}]` : JSON.stringify(b),
+          0
+        );
+        console.log(
+          `  ${ok ? 'OK' : 'FAIL'}  assert:get_selection_bounds_rect — ${ok ? `bounds match rectangle` : short(JSON.stringify(b))}`
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        t.recordPrompt('assert:get_selection_bounds_rect', 'fail', msg, 0);
+        console.log(`  FAIL assert:get_selection_bounds_rect — ${msg}`);
+      }
+    }
+  }
+  await t.run('photoshop_get_selection_bounds');
+  await t.run('photoshop_get_state', {}, { required: true });
+
+  console.log('\n--- Phase 6b: Selection modifiers ---');
+  await t.run('photoshop_select_rectangle', {
+    left: selLeft,
+    top: selTop,
+    right: selRight,
+    bottom: selBottom,
+  });
+  await t.run('photoshop_expand_selection', { pixels: 5 });
+  {
+    const boundsResult = await client.callTool({ name: 'photoshop_get_selection_bounds', arguments: {} });
+    const boundsBody = textFrom(boundsResult);
+    if (boundsResult.isError) {
+      t.recordPrompt('assert:expand_selection_bounds', 'fail', short(boundsBody), 0);
+      console.log(`  FAIL assert:expand_selection_bounds — ${short(boundsBody)}`);
+    } else {
+      try {
+        const payload = parseJsonFromToolText(boundsBody) as {
+          ok?: boolean;
+          details?: {
+            has_selection?: boolean;
+            bounds?: { left?: number; top?: number; right?: number; bottom?: number };
+          };
+        };
+        const b = payload.details?.bounds;
+        const ok =
+          payload.ok === true &&
+          payload.details?.has_selection === true &&
+          b?.left === selLeft - 5 &&
+          b?.top === selTop - 5 &&
+          b?.right === selRight + 5 &&
+          b?.bottom === selBottom + 5;
+        t.recordPrompt(
+          'assert:expand_selection_bounds',
+          ok ? 'pass' : 'fail',
+          ok ? 'expanded bounds match' : JSON.stringify(b),
+          0
+        );
+        console.log(
+          `  ${ok ? 'OK' : 'FAIL'}  assert:expand_selection_bounds — ${ok ? 'expanded bounds match' : short(JSON.stringify(b))}`
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        t.recordPrompt('assert:expand_selection_bounds', 'fail', msg, 0);
+        console.log(`  FAIL assert:expand_selection_bounds — ${msg}`);
+      }
+    }
+  }
+
+  await t.run('photoshop_contract_selection', { pixels: 3 });
+  await t.run('photoshop_feather_selection', { pixels: 2 });
+  await t.run('photoshop_get_selection_bounds');
+
+  const ellLeft = 50;
+  const ellTop = 50;
+  const ellRight = 200;
+  const ellBottom = 200;
+  await t.run('photoshop_select_ellipse', {
+    left: ellLeft,
+    top: ellTop,
+    right: ellRight,
+    bottom: ellBottom,
+  });
+  {
+    const boundsResult = await client.callTool({ name: 'photoshop_get_selection_bounds', arguments: {} });
+    const boundsBody = textFrom(boundsResult);
+    if (boundsResult.isError) {
+      t.recordPrompt('assert:select_ellipse_bounds', 'fail', short(boundsBody), 0);
+      console.log(`  FAIL assert:select_ellipse_bounds — ${short(boundsBody)}`);
+    } else {
+      try {
+        const payload = parseJsonFromToolText(boundsBody) as {
+          ok?: boolean;
+          details?: {
+            has_selection?: boolean;
+            bounds?: { left?: number; top?: number; right?: number; bottom?: number };
+          };
+        };
+        const b = payload.details?.bounds;
+        const ok =
+          payload.ok === true &&
+          payload.details?.has_selection === true &&
+          b?.left === ellLeft &&
+          b?.top === ellTop &&
+          b?.right === ellRight &&
+          b?.bottom === ellBottom;
+        t.recordPrompt(
+          'assert:select_ellipse_bounds',
+          ok ? 'pass' : 'fail',
+          ok ? 'ellipse bounds match' : JSON.stringify(b),
+          0
+        );
+        console.log(
+          `  ${ok ? 'OK' : 'FAIL'}  assert:select_ellipse_bounds — ${ok ? 'ellipse bounds match' : short(JSON.stringify(b))}`
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        t.recordPrompt('assert:select_ellipse_bounds', 'fail', msg, 0);
+        console.log(`  FAIL assert:select_ellipse_bounds — ${msg}`);
+      }
+    }
+  }
+
+  await t.run('photoshop_save_selection', { channel_name: 'MCP_Test_Sel' });
+  await t.run('photoshop_deselect');
+  await t.run('photoshop_expand_selection', { pixels: 5 }, { expectError: true });
+  await t.run(
+    'photoshop_select_ellipse',
+    { left: 200, top: 50, right: 50, bottom: 200 },
+    { expectError: true }
+  );
+
   await t.run('photoshop_select_rectangle', { left: 50, top: 50, right: 300, bottom: 300 });
   await t.run('photoshop_content_aware_fill');
   await t.run('photoshop_select_all');
@@ -285,6 +605,19 @@ async function main(): Promise<void> {
   await t.run('photoshop_delete_layer_mask');
   await t.run('photoshop_deselect');
 
+  console.log('\n--- Phase 6c: Clipping mask ---');
+  await t.run('photoshop_create_document', { width: 200, height: 200 });
+  await t.run('photoshop_create_layer', { name: 'MCP_Clip_Base' });
+  await t.run('photoshop_fill_layer', { red: 200, green: 200, blue: 50 });
+  await t.run('photoshop_create_layer', { name: 'MCP_Clip_Top' });
+  await t.run('photoshop_fill_layer', { red: 40, green: 120, blue: 220 });
+  await t.run('photoshop_select_layer_by_name', { name: 'MCP_Clip_Top' }, { required: true });
+  await t.run('photoshop_create_clipping_mask', { layer_name: 'MCP_Clip_Top' });
+  await t.run('photoshop_release_clipping_mask', { layer_name: 'MCP_Clip_Top' });
+  await t.run('photoshop_create_document', { width: 100, height: 100 });
+  await t.run('photoshop_create_clipping_mask', {}, { expectError: true });
+  await t.run('photoshop_set_active_document', { index: 0 }, { required: true });
+
   console.log('\n=== Phase 7: Adjustments ===');
   await t.run('photoshop_select_layer_by_name', { name: 'MCP_Paint_Renamed copy' });
   await t.run('photoshop_execute_script', {
@@ -298,6 +631,12 @@ async function main(): Promise<void> {
   await t.run('photoshop_select_layer_by_name', { name: 'MCP_Paint_Renamed copy' });
   await t.run('photoshop_desaturate');
   await t.run('photoshop_invert');
+
+  console.log('\n--- Phase 7b: Filters (high pass, smart blur) ---');
+  await t.run('photoshop_select_layer_by_name', { name: 'MCP_Paint_Renamed copy' });
+  await t.run('photoshop_apply_high_pass', { radius: 5 });
+  await t.run('photoshop_apply_smart_blur', { radius: 10, threshold: 25 });
+  await t.run('photoshop_apply_high_pass', { radius: 0 }, { expectError: true });
 
   console.log('\n=== Phase 8: Filters ===');
   await t.run('photoshop_select_layer_by_name', { name: 'MCP_Paint_Renamed copy' });
@@ -329,6 +668,64 @@ async function main(): Promise<void> {
   await t.run('photoshop_execute_script', {
     code: `for (var i=0;i<app.documents.length;i++){var d=app.documents[i]; if(d.width.as('px')===800&&d.height.as('px')===600){app.activeDocument=d;break;}} return {active:app.activeDocument.name,width:app.activeDocument.width.as('px')};`,
   }, { required: true });
+
+  console.log('\n=== Phase 10b: Smart Objects ===');
+  await t.run('photoshop_create_layer', { name: 'MCP_SO_Convert' });
+  await t.run('photoshop_fill_layer', { red: 0, green: 180, blue: 80 });
+  await t.run('photoshop_convert_to_smart_object', { layer_name: 'MCP_SO_Convert' });
+  await t.run('photoshop_execute_script', {
+    code: `var doc=app.activeDocument; var target=null; for(var i=0;i<doc.layers.length;i++){var L=doc.layers[i]; if(String(L.kind)==='LayerKind.SMARTOBJECT'){target=L;break;}} if(!target) throw new Error('No Smart Object layer found'); doc.activeLayer=target; return {active:target.name,kind:String(target.kind)};`,
+  });
+  await t.run('photoshop_replace_smart_object_contents', {
+    file_path: join(assetsDir, 'asset-b.png'),
+  });
+  await t.run('photoshop_create_smart_object_via_copy');
+  {
+    const started = Date.now();
+    const editCall = await client.callTool({
+      name: 'photoshop_edit_smart_object_contents',
+      arguments: {},
+    });
+    const editBody = textFrom(editCall);
+    const ms = Date.now() - started;
+    let hasEmbeddedDoc = false;
+    try {
+      const payload = parseJsonFromToolText(editBody) as {
+        ok?: boolean;
+        details?: { embedded_document?: unknown };
+        embedded_document?: unknown;
+      };
+      hasEmbeddedDoc =
+        payload.details?.embedded_document !== undefined ||
+        payload.embedded_document !== undefined ||
+        editBody.includes('embedded_document');
+    } catch {
+      hasEmbeddedDoc = editBody.includes('embedded_document');
+    }
+    if (editCall.isError) {
+      t.recordPrompt('photoshop_edit_smart_object_contents', 'fail', short(editBody), ms);
+      console.log(`  FAIL photoshop_edit_smart_object_contents (${ms}ms) — ${short(editBody)}`);
+    } else if (!hasEmbeddedDoc) {
+      t.recordPrompt(
+        'photoshop_edit_smart_object_contents',
+        'fail',
+        'missing embedded_document in response',
+        ms
+      );
+      console.log(`  FAIL photoshop_edit_smart_object_contents (${ms}ms) — missing embedded_document`);
+    } else {
+      t.recordPrompt('photoshop_edit_smart_object_contents', 'pass', short(editBody), ms);
+      console.log(`  OK   photoshop_edit_smart_object_contents (${ms}ms) — ${short(editBody)}`);
+    }
+  }
+  await t.run('photoshop_execute_script', {
+    code: `app.activeDocument.save(); app.activeDocument.close(SaveOptions.SAVECHANGES); return { closed: true, active: app.activeDocument.name };`,
+  });
+  await t.run('photoshop_execute_script', {
+    code: `var doc=app.activeDocument; var target=null; function findNorm(c){for(var i=0;i<c.layers.length;i++){var L=c.layers[i]; if(L.typename==='LayerSet'){var n=findNorm(L);if(n)return n;} else if(String(L.kind)==='LayerKind.NORMAL'&&!L.isBackgroundLayer){return L;}} return null;} target=findNorm(doc); if(!target) throw new Error('No normal layer'); doc.activeLayer=target; return {active:target.name,kind:String(target.kind)};`,
+  });
+  await t.run('photoshop_replace_smart_object_contents', { file_path: testPng }, { expectError: true });
+  await t.run('photoshop_replace_smart_object_contents', {}, { expectError: true });
 
   console.log('\n=== Phase 11: Image document ops ===');
   await t.run('photoshop_resize_image', { width: 640, height: 480 });
@@ -439,7 +836,7 @@ async function main(): Promise<void> {
   console.log('\n=== Phase 17: Cleanup ===');
   await t.run('photoshop_close_document', { save: false });
 
-  console.log('\n=== Phase 18: Prompt templates (15 recipes) ===');
+  console.log('\n=== Phase 18: Prompt templates (16 recipes) ===');
   const prompts = [
     ['ps.remove_background', { feather_px: '1', keep_shadow: 'false' }],
     ['ps.enhance_portrait', { intensity: 'medium', skin_smoothing: 'true' }],

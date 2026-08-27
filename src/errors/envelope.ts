@@ -6,6 +6,9 @@ export type PhotoshopErrorCode =
   | 'no_active_document'
   | 'no_active_layer'
   | 'layer_not_found'
+  | 'document_not_found'
+  | 'ambiguous_name'
+  | 'invalid_arguments'
   | 'selection_required'
   | 'version_unsupported'
   | 'generative_unavailable'
@@ -17,6 +20,8 @@ export type PhotoshopErrorCode =
   | 'file_not_found'
   | 'font_not_found'
   | 'unsupported_color_mode'
+  | 'no_base_layer_below'
+  | 'not_clipping'
   | 'unknown';
 
 export interface PhotoshopErrorEnvelope {
@@ -36,6 +41,8 @@ const ERROR_PATTERNS: Array<{
   { pattern: /no documents/i, code: 'no_active_document', suggested_next_tool: 'photoshop_get_state' },
   { pattern: /no active layer/i, code: 'no_active_layer', suggested_next_tool: 'photoshop_get_layers' },
   { pattern: /layer not found/i, code: 'layer_not_found', suggested_next_tool: 'photoshop_get_layers' },
+  { pattern: /no base layer below|nothing to clip into/i, code: 'no_base_layer_below', suggested_next_tool: 'photoshop_get_layers' },
+  { pattern: /not clipping|not a clipping mask/i, code: 'not_clipping', suggested_next_tool: 'photoshop_get_layers' },
   { pattern: /selection/i, code: 'selection_required', suggested_next_tool: 'photoshop_get_state' },
   { pattern: /version_unsupported|not supported.*version/i, code: 'version_unsupported', suggested_next_tool: 'photoshop_get_capabilities' },
   { pattern: /generative.*credit|quota|sign in/i, code: 'generative_credits_exhausted', suggested_next_tool: 'photoshop_get_capabilities' },

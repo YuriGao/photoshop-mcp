@@ -1,7 +1,7 @@
 # AI / Prompt Layer for Photoshop
 
-The photoshop-mcp server exposes 86 atomic `photoshop_*` tools plus 16 recipe
-`photoshop_recipe_*` tools (102 total), along with a thin
+The photoshop-mcp server exposes 102 atomic `photoshop_*` tools plus 16 recipe
+`photoshop_recipe_*` tools (118 total), along with a thin
 AI/prompt layer ported from TTT: server-level instructions, MCP prompt templates,
 recipe tools, state/preview tools, version-aware capabilities, and structured
 error envelopes.
@@ -16,10 +16,10 @@ prompt discovery, `~/.photoshop-mcp/exports` conventions, and error recovery con
 
 ## 2. MCP `prompts` primitive
 
-Twenty-two templates in [`src/prompts/templates/`](../src/prompts/templates/), registered via
+Twenty-three templates in [`src/prompts/templates/`](../src/prompts/templates/), registered via
 [`src/prompts/registry.ts`](../src/prompts/registry.ts).
 
-### Recipe prompts (15 — 1:1 with `photoshop_recipe_*`)
+### Recipe prompts (16 — 1:1 with `photoshop_recipe_*`)
 
 | Prompt | Recipe tool |
 |--------|-------------|
@@ -38,6 +38,7 @@ Twenty-two templates in [`src/prompts/templates/`](../src/prompts/templates/), r
 | `ps.split_carousel` | `photoshop_recipe_split_carousel` |
 | `ps.batch_watermark` | `photoshop_recipe_batch_watermark` |
 | `ps.passport_photo` | `photoshop_recipe_passport_photo` |
+| `ps.csv_to_cards` | `photoshop_recipe_csv_to_cards` |
 
 ### Guide prompts (7 — no recipe pair)
 
@@ -57,7 +58,7 @@ and returns a `GetPromptResult` with `description` + structured Goal/Plan/End st
 
 ## 3. Recipe tools
 
-Fifteen recipes in [`src/tools/recipes/`](../src/tools/recipes/), sharing
+Sixteen recipes in [`src/tools/recipes/`](../src/tools/recipes/), sharing
 [`src/tools/recipes/_shared.ts`](../src/tools/recipes/_shared.ts) (`executeRecipe`,
 `executeStandaloneRecipe`, `suspendHistory`, uniform `{ ok, summary, ... }` envelope).
 
@@ -78,7 +79,7 @@ when the standalone UI passes `PHOTOSHOP_EXPORT_CHAT_ID` to the MCP child).
 npm run verify:photoshop-prompts
 ```
 
-Strict **15↔15** recipe/prompt parity plus separate guide prompt registration check.
+Strict **16↔16** recipe/prompt parity plus separate guide prompt registration check.
 
 ## Backwards compatibility
 

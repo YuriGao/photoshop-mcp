@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Photoshop MCP
   text: 用 AI 控制 Adobe Photoshop
-  tagline: 适用于 Cursor、Claude Desktop 和自然语言的 MCP 服务器 — 102 个工具、配方工作流、独立 Web UI。
+  tagline: 适用于 Cursor、Claude Desktop 和自然语言的 MCP 服务器 — 118 个工具、配方工作流、独立 Web UI。
   image:
     src: /images/readme-hero.png
     alt: Photoshop MCP — AI 驱动的 Photoshop 自动化
@@ -24,8 +24,8 @@ features:
     title: 状态感知
     details: get_state、get_preview 和 get_capabilities — AI 在操作前了解文档状态。
   - icon: 🧩
-    title: 102 个 MCP 工具
-    details: 86 个原子工具 + 16 个配方工作流，每个配方对应一次撤销。
+    title: 118 个 MCP 工具
+    details: 102 个原子工具 + 16 个配方工作流，每个配方对应一次撤销。
   - icon: 🖥️
     title: 独立 Web UI
     details: 无需 IDE，通过 Claude、GPT 或 Gemini 聊天驱动 Photoshop。

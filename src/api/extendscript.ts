@@ -14,6 +14,81 @@ function sTID(s) { return app.stringIDToTypeID(s); }
 `;
 
 /**
+ * Selection helpers shared by getSelectionBounds and selection modifier snippets.
+ * @see https://stackoverflow.com/questions/41552883/determine-if-selection-is-present
+ * @see https://www.indesignjs.de/extendscriptAPI/photoshop-latest/Selection.html
+ */
+const selectionHelpers = `
+function __mcp_hasSelection() {
+  var ref10 = new ActionReference();
+  ref10.putProperty(sTID('property'), sTID('selection'));
+  ref10.putEnumerated(cTID('Dcmn'), cTID('Ordn'), cTID('Trgt'));
+  var docDesc = executeActionGet(ref10);
+  return docDesc.hasKey(sTID('selection'));
+}
+
+function __mcp_requireSelection() {
+  if (!__mcp_hasSelection()) {
+    return { ok: false, code: 'selection_required', message: 'Active pixel selection required' };
+  }
+  return null;
+}
+
+function __mcp_readSelectionBounds(doc) {
+  try {
+    var b = doc.selection.bounds;
+    var left = b[0].as('px');
+    var top = b[1].as('px');
+    var right = b[2].as('px');
+    var bottom = b[3].as('px');
+    return {
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
+      width: right - left,
+      height: bottom - top
+    };
+  } catch (eBounds) {
+    return null;
+  }
+}
+`;
+
+/**
+ * Shared guard for filter snippets that require a raster (non-background) layer.
+ */
+const filterLayerHelpers = `
+function __mcp_requireFilterableLayer(layer) {
+  if (layer.isBackgroundLayer) {
+    return {
+      ok: false,
+      code: 'background_layer',
+      message: 'Cannot apply filters to the Background layer — convert to a normal layer first (photoshop_rasterize_layer).',
+      suggested_next_tool: 'photoshop_rasterize_layer'
+    };
+  }
+  if (layer.kind === LayerKind.TEXT || layer.kind === LayerKind.SMARTOBJECT) {
+    return {
+      ok: false,
+      code: 'layer_not_raster',
+      message: 'Cannot apply filters to text or Smart Object layers — rasterize first (photoshop_rasterize_layer).',
+      suggested_next_tool: 'photoshop_rasterize_layer'
+    };
+  }
+  if (layer.kind !== LayerKind.NORMAL) {
+    return {
+      ok: false,
+      code: 'layer_not_raster',
+      message: 'Can only apply filters to normal (raster) layers. Layer kind: ' + layer.kind + '. Rasterize first (photoshop_rasterize_layer).',
+      suggested_next_tool: 'photoshop_rasterize_layer'
+    };
+  }
+  return null;
+}
+`;
+
+/**
  * Resolve a display or PostScript font name to the PostScript name required by TextItem.font.
  * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/TextItem/font.html
  * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/TextFont.html
@@ -153,6 +228,71 @@ function __mcp_c2t(s) { return cTID(s); }
  * @see https://community.adobe.com/t5/photoshop-ecosystem-discussions/is-it-possible-to-make-a-layer-mask-with-the-current-selection-using-extendscript/td-p/10872052
  * @see https://github.com/LeZuse/photoshop-scripts/blob/master/default/Stack%20Scripts%20Only/StackSupport.jsx
  */
+/**
+ * Smart Object helpers — newPlacedLayer, placedLayerReplaceContents, placedLayerEditContents,
+ * placedLayerMakeCopy (Adobe Community, Photopea, laryn gist, c.pfaffenbichler).
+ * Requires `helperFunctions` (cTID/sTID) in the enclosing script.
+ */
+export const MCP_SMART_OBJECT_HELPERS = `
+function __mcp_findLayer(container, name) {
+  for (var i = 0; i < container.layers.length; i++) {
+    var l = container.layers[i];
+    if (l.name === name) return l;
+  }
+  for (var j = 0; j < container.layerSets.length; j++) {
+    var nested = __mcp_findLayer(container.layerSets[j], name);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function __mcp_activateLayerByName(layerName) {
+  var doc = app.activeDocument;
+  if (!layerName) {
+    if (!doc.activeLayer) {
+      return { ok: false, code: 'layer_not_found', message: 'No active layer' };
+    }
+    return { ok: true, layer: doc.activeLayer };
+  }
+  var target = __mcp_findLayer(doc, layerName);
+  if (!target) {
+    return {
+      ok: false,
+      code: 'layer_not_found',
+      message: 'Layer not found: ' + layerName,
+      suggested_next_tool: 'photoshop_get_layers'
+    };
+  }
+  doc.activeLayer = target;
+  return { ok: true, layer: target };
+}
+
+function __mcp_replaceSmartObjectContents(filePath) {
+  var layer = app.activeDocument.activeLayer;
+  if (layer.kind !== LayerKind.SMARTOBJECT) {
+    return {
+      ok: false,
+      code: 'unsupported_layer_kind',
+      message: 'Target layer "' + layer.name + '" is not a Smart Object (kind=' + layer.kind + ').',
+      suggested_next_tool: 'photoshop_get_layers'
+    };
+  }
+  var assetFile = new File(filePath);
+  if (!assetFile.exists) {
+    return { ok: false, code: 'file_not_found', message: 'Replacement file not found: ' + filePath };
+  }
+  var replaceDesc = new ActionDescriptor();
+  replaceDesc.putPath(cTID('null'), assetFile);
+  replaceDesc.putInteger(cTID('PgNm'), 1);
+  executeAction(sTID('placedLayerReplaceContents'), replaceDesc, DialogModes.NO);
+  return {
+    ok: true,
+    layerName: app.activeDocument.activeLayer.name,
+    filePath: filePath
+  };
+}
+`;
+
 export const MCP_LAYER_MASK_HELPERS = `
 function __mcp_hasLayerMaskAM() {
   var ref = new ActionReference();
@@ -248,6 +388,34 @@ function __mcp_gradientFillLayerMask(fromXPx, fromYPx, toXPx, toYPx, reverseGrad
 }
 `;
 
+/**
+ * Clipping mask helpers — groupEvent AM create; grouped DOM release.
+ * @see https://stackoverflow.com/questions/13842581/photoshop-js-script-to-create-and-apply-a-layer-mask
+ * @see https://community.adobe.com/t5/photoshop-ecosystem-discussions/clipping-mask-script-issues-in-ps-2025-on-mac/td-p/1178313
+ * @see https://www.ps-scripts.com/viewtopic.php?t=10955 (layer.grouped property)
+ */
+export const MCP_CLIPPING_MASK_HELPERS = `
+function __mcp_getLayerBelow(layer) {
+  var container = layer.parent;
+  var stack = container.layers;
+  for (var i = 0; i < stack.length; i++) {
+    if (stack[i] === layer) {
+      if (i >= stack.length - 1) return null;
+      return stack[i + 1];
+    }
+  }
+  return null;
+}
+
+function __mcp_createClippingMaskAM() {
+  var desc = new ActionDescriptor();
+  var ref = new ActionReference();
+  ref.putEnumerated(sTID('layer'), sTID('ordinal'), sTID('targetEnum'));
+  desc.putReference(sTID('null'), ref);
+  executeAction(sTID('groupEvent'), desc, DialogModes.NO);
+}
+`;
+
 export type CurvesPreset = 'auto_tone' | 'neutral';
 
 export type GradientMaskDirection =
@@ -298,6 +466,132 @@ export const ExtendScriptSnippets = {
     var context = getContextInfo();
     return context;
   `,
+
+  /**
+   * List all open documents (read-only).
+   * @see https://developer.adobe.com/photoshop/uxp/ps_reference/classes/documents/
+   */
+  listDocuments: () => `
+    ${getContextInfo}
+
+    var docs = [];
+    var activeId = null;
+    try {
+      if (app.documents.length > 0) {
+        activeId = app.activeDocument.id;
+      }
+    } catch (eActive) {
+      activeId = null;
+    }
+
+    for (var i = 0; i < app.documents.length; i++) {
+      var d = app.documents[i];
+      var entry = {
+        id: d.id,
+        name: d.name,
+        is_active: false
+      };
+      try { entry.width = d.width.as('px'); } catch (eW) {}
+      try { entry.height = d.height.as('px'); } catch (eH) {}
+      try { entry.resolution = d.resolution; } catch (eR) {}
+      try { entry.is_active = activeId !== null && d.id === activeId; } catch (eA) {}
+      docs.push(entry);
+    }
+
+    return {
+      ok: true,
+      count: docs.length,
+      documents: docs,
+      active_document_id: activeId,
+      context: getContextInfo()
+    };
+  `,
+
+  /**
+   * Activate an open document by id, tab index, or name.
+   * @see https://stackoverflow.com/questions/4537506/how-to-switch-between-open-documents-in-photoshop-using-javascript
+   */
+  setActiveDocument: (params: {
+    documentId?: number;
+    documentName?: string;
+    index?: number;
+  }) => {
+    let modeBlock = '';
+    if (params.documentId !== undefined) {
+      modeBlock = `var __mode = 'id'; var __targetId = ${params.documentId};`;
+    } else if (params.index !== undefined) {
+      modeBlock = `var __mode = 'index'; var __targetIndex = ${params.index};`;
+    } else {
+      modeBlock = `var __mode = 'name'; var __targetName = "${jsString(params.documentName!)}";`;
+    }
+
+    return `
+    ${getContextInfo}
+    ${modeBlock}
+
+    var targetDoc = null;
+
+    if (__mode === 'id') {
+      for (var i = 0; i < app.documents.length; i++) {
+        if (app.documents[i].id === __targetId) {
+          targetDoc = app.documents[i];
+          break;
+        }
+      }
+      if (!targetDoc) {
+        return {
+          ok: false,
+          code: 'document_not_found',
+          message: 'No open document with id ' + __targetId
+        };
+      }
+    } else if (__mode === 'index') {
+      if (__targetIndex < 0 || __targetIndex >= app.documents.length) {
+        return {
+          ok: false,
+          code: 'document_not_found',
+          message: 'Document index out of range: ' + __targetIndex + ' (open count: ' + app.documents.length + ')'
+        };
+      }
+      targetDoc = app.documents[__targetIndex];
+    } else {
+      var matches = [];
+      for (var j = 0; j < app.documents.length; j++) {
+        if (app.documents[j].name === __targetName) {
+          matches.push(app.documents[j]);
+        }
+      }
+      if (matches.length === 0) {
+        return {
+          ok: false,
+          code: 'document_not_found',
+          message: 'No open document named "' + __targetName + '"'
+        };
+      }
+      if (matches.length > 1) {
+        var matchIds = [];
+        for (var k = 0; k < matches.length; k++) {
+          matchIds.push(matches[k].id);
+        }
+        return {
+          ok: false,
+          code: 'ambiguous_name',
+          message: 'Multiple open documents named "' + __targetName + '". Use document_id instead.',
+          matching_document_ids: matchIds
+        };
+      }
+      targetDoc = matches[0];
+    }
+
+    app.activeDocument = targetDoc;
+
+    return {
+      ok: true,
+      activated: { id: targetDoc.id, name: targetDoc.name },
+      context: getContextInfo()
+    };
+  `;
+  },
 
   /**
    * Create a text layer
@@ -1066,6 +1360,83 @@ export const ExtendScriptSnippets = {
   `,
 
   /**
+   * Apply High Pass filter via Action Manager.
+   * @see https://community.adobe.com/t5/photoshop-ecosystem-discussions/high-pass-filter-using-javascript/td-p/1144836
+   * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/ArtLayer/applyHighPass.html
+   */
+  applyHighPass: (radius: number) => `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${filterLayerHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var layer = app.activeDocument.activeLayer;
+    var layerErr = __mcp_requireFilterableLayer(layer);
+    if (layerErr) return layerErr;
+
+    try {
+      var desc = new ActionDescriptor();
+      desc.putUnitDouble(cTID('Rds '), cTID('#Pxl'), ${radius});
+      executeAction(sTID('highPass'), desc, DialogModes.NO);
+    } catch (eFilter) {
+      return {
+        ok: false,
+        code: 'filter_failed',
+        message: 'High Pass filter failed: ' + eFilter.message + '. If the layer is text or a Smart Object, rasterize first (photoshop_rasterize_layer).',
+        suggested_next_tool: 'photoshop_rasterize_layer'
+      };
+    }
+
+    return {
+      ok: true,
+      filter: 'High Pass',
+      radius: ${radius},
+      context: getContextInfo()
+    };
+  `,
+
+  /**
+   * Apply Smart Blur filter.
+   * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/ArtLayer/applySmartBlur.html
+   */
+  applySmartBlur: (radius: number, threshold: number, mode: string, quality: string) => `
+    ${getContextInfo}
+    ${filterLayerHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var layer = app.activeDocument.activeLayer;
+    var layerErr = __mcp_requireFilterableLayer(layer);
+    if (layerErr) return layerErr;
+
+    try {
+      layer.applySmartBlur(${radius}, ${threshold}, SmartBlurQuality.${quality}, SmartBlurMode.${mode});
+    } catch (eFilter) {
+      return {
+        ok: false,
+        code: 'filter_failed',
+        message: 'Smart Blur filter failed: ' + eFilter.message + '. If the layer is text or a Smart Object, rasterize first (photoshop_rasterize_layer).',
+        suggested_next_tool: 'photoshop_rasterize_layer'
+      };
+    }
+
+    return {
+      ok: true,
+      filter: 'Smart Blur',
+      radius: ${radius},
+      threshold: ${threshold},
+      mode: '${mode}',
+      quality: '${quality}',
+      context: getContextInfo()
+    };
+  `,
+
+  /**
    * Adjust brightness and contrast
    */
   adjustBrightnessContrast: (brightness: number, contrast: number) => `
@@ -1442,6 +1813,211 @@ export const ExtendScriptSnippets = {
   `,
 
   /**
+   * Read active pixel selection bounds (read-only).
+   * Uses executeActionGet hasSelection (c.pfaffenbichler) then bounds[].as('px').
+   * @see https://stackoverflow.com/questions/41552883/determine-if-selection-is-present
+   * @see https://community.adobe.com/t5/photoshop-ecosystem-discussions/can-the-presence-of-a-selection-be-set-to-a-boolean/td-p/1144178
+   * @see https://community.adobe.com/t5/photoshop-ecosystem-discussions/selection-bounds-operation/td-p/1101762
+   */
+  getSelectionBounds: () => `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${selectionHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var doc = app.activeDocument;
+    var hasSel = __mcp_hasSelection();
+    var result = {
+      ok: true,
+      has_selection: hasSel,
+      context: getContextInfo()
+    };
+
+    if (hasSel) {
+      var boundsRead = __mcp_readSelectionBounds(doc);
+      if (!boundsRead) {
+        return {
+          ok: false,
+          code: 'selection_bounds_error',
+          message: 'Failed to read selection bounds'
+        };
+      }
+      result.bounds = boundsRead;
+    }
+
+    return result;
+  `,
+
+  /**
+   * Create elliptical marquee selection via Action Manager (setd + Elps).
+   * @see https://stackoverflow.com/questions/37082583/elliptical-marquee-selection-then-fill-with-color-in-photoshop-using-javascript
+   * @see https://stackoverflow.com/questions/35235191/how-do-i-create-a-circular-or-elliptical-selections-in-javascript-for-use-in-pho
+   */
+  selectEllipse: (left: number, top: number, right: number, bottom: number) => `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${selectionHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var doc = app.activeDocument;
+    var desc = new ActionDescriptor();
+    var ref = new ActionReference();
+    ref.putProperty(cTID('Chnl'), cTID('fsel'));
+    desc.putReference(cTID('null'), ref);
+    var elps = new ActionDescriptor();
+    elps.putUnitDouble(cTID('Top '), cTID('#Pxl'), ${top});
+    elps.putUnitDouble(cTID('Left'), cTID('#Pxl'), ${left});
+    elps.putUnitDouble(cTID('Btom'), cTID('#Pxl'), ${bottom});
+    elps.putUnitDouble(cTID('Rght'), cTID('#Pxl'), ${right});
+    desc.putObject(cTID('T   '), cTID('Elps'), elps);
+    desc.putBoolean(cTID('AntA'), true);
+    executeAction(cTID('setd'), desc, DialogModes.NO);
+
+    var result = {
+      ok: true,
+      has_selection: true,
+      shape: 'ellipse',
+      context: getContextInfo()
+    };
+    var boundsRead = __mcp_readSelectionBounds(doc);
+    if (boundsRead) result.bounds = boundsRead;
+    return result;
+  `,
+
+  /**
+   * Expand the active selection by pixels.
+   * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/Selection/expand.html
+   */
+  expandSelection: (pixels: number) => `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${selectionHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var doc = app.activeDocument;
+    var selErr = __mcp_requireSelection();
+    if (selErr) return selErr;
+
+    doc.selection.expand(new UnitValue(${pixels}, 'px'));
+
+    var result = {
+      ok: true,
+      has_selection: true,
+      pixels: ${pixels},
+      operation: 'expand',
+      context: getContextInfo()
+    };
+    var boundsRead = __mcp_readSelectionBounds(doc);
+    if (boundsRead) result.bounds = boundsRead;
+    return result;
+  `,
+
+  /**
+   * Contract the active selection by pixels.
+   * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/Selection/contract.html
+   */
+  contractSelection: (pixels: number) => `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${selectionHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var doc = app.activeDocument;
+    var selErr = __mcp_requireSelection();
+    if (selErr) return selErr;
+
+    doc.selection.contract(new UnitValue(${pixels}, 'px'));
+
+    var result = {
+      ok: true,
+      has_selection: true,
+      pixels: ${pixels},
+      operation: 'contract',
+      context: getContextInfo()
+    };
+    var boundsRead = __mcp_readSelectionBounds(doc);
+    if (boundsRead) result.bounds = boundsRead;
+    return result;
+  `,
+
+  /**
+   * Feather the active selection edges by pixels.
+   * @see https://www.indesignjs.de/extendscriptAPI/photoshop-latest/Selection.html
+   */
+  featherSelection: (pixels: number) => `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${selectionHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var doc = app.activeDocument;
+    var selErr = __mcp_requireSelection();
+    if (selErr) return selErr;
+
+    doc.selection.feather(new UnitValue(${pixels}, 'px'));
+
+    var result = {
+      ok: true,
+      has_selection: true,
+      pixels: ${pixels},
+      operation: 'feather',
+      context: getContextInfo()
+    };
+    var boundsRead = __mcp_readSelectionBounds(doc);
+    if (boundsRead) result.bounds = boundsRead;
+    return result;
+  `,
+
+  /**
+   * Save the active selection to a new alpha channel.
+   * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/Selection/store.html
+   */
+  saveSelection: (channelName?: string) => {
+    const channelNameLiteral = channelName ? jsString(channelName) : 'null';
+    return `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${selectionHelpers}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+
+    var doc = app.activeDocument;
+    var selErr = __mcp_requireSelection();
+    if (selErr) return selErr;
+
+    var channelName = ${channelNameLiteral};
+    var name = channelName || ('MCP Selection ' + (new Date().getTime()));
+    var chan = doc.channels.add();
+    chan.name = name;
+    chan.kind = ChannelType.SELECTEDAREA;
+    doc.selection.store(chan, SelectionType.REPLACE);
+
+    return {
+      ok: true,
+      channel_name: chan.name,
+      context: getContextInfo()
+    };
+  `;
+  },
+
+  /**
    * Create rectangular selection
    */
   selectRectangle: (left: number, top: number, right: number, bottom: number) => `
@@ -1698,6 +2274,124 @@ export const ExtendScriptSnippets = {
       maskDeleted: true
     };
   `,
+
+  /**
+   * Create a clipping mask on the active or named layer (groupEvent AM).
+   * Active layer must sit directly above the layer to clip into.
+   */
+  createClippingMask: (layerName?: string) => {
+    const layerSelect = layerName
+      ? `var sel = __mcp_activateLayerByName("${jsString(layerName)}"); if (!sel.ok) return sel;`
+      : '';
+    return `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${MCP_SMART_OBJECT_HELPERS}
+    ${MCP_CLIPPING_MASK_HELPERS}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+    app.displayDialogs = DialogModes.NO;
+    var doc = app.activeDocument;
+    ${layerSelect}
+    if (!doc.activeLayer) {
+      return {
+        ok: false,
+        code: 'no_active_layer',
+        message: 'No active layer',
+        suggested_next_tool: 'photoshop_get_layers'
+      };
+    }
+    var layer = doc.activeLayer;
+    if (!__mcp_getLayerBelow(layer)) {
+      return {
+        ok: false,
+        code: 'no_base_layer_below',
+        message: 'No base layer below the active layer — nothing to clip into. The target layer must sit directly above the layer it should clip to.',
+        suggested_next_tool: 'photoshop_get_layers'
+      };
+    }
+    if (layer.grouped === true) {
+      return {
+        ok: true,
+        layer_name: layer.name,
+        is_clipping: true,
+        already_clipping: true,
+        context: getContextInfo()
+      };
+    }
+    try {
+      __mcp_createClippingMaskAM();
+    } catch (eClip) {
+      return {
+        ok: false,
+        code: 'extendscript_runtime_error',
+        message: 'Create clipping mask failed: ' + (eClip.message || eClip)
+      };
+    }
+    return {
+      ok: true,
+      layer_name: app.activeDocument.activeLayer.name,
+      is_clipping: true,
+      context: getContextInfo()
+    };
+  `;
+  },
+
+  /**
+   * Release clipping mask on the active or named layer (layer.grouped = false).
+   */
+  releaseClippingMask: (layerName?: string) => {
+    const layerSelect = layerName
+      ? `var sel = __mcp_activateLayerByName("${jsString(layerName)}"); if (!sel.ok) return sel;`
+      : '';
+    return `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${MCP_SMART_OBJECT_HELPERS}
+    ${MCP_CLIPPING_MASK_HELPERS}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+    app.displayDialogs = DialogModes.NO;
+    var doc = app.activeDocument;
+    ${layerSelect}
+    if (!doc.activeLayer) {
+      return {
+        ok: false,
+        code: 'no_active_layer',
+        message: 'No active layer',
+        suggested_next_tool: 'photoshop_get_layers'
+      };
+    }
+    var layer = doc.activeLayer;
+    if (layer.grouped !== true) {
+      return {
+        ok: false,
+        code: 'not_clipping',
+        message: 'Layer "' + layer.name + '" is not a clipping mask',
+        suggested_next_tool: 'photoshop_get_layers'
+      };
+    }
+    try {
+      layer.grouped = false;
+    } catch (eRelease) {
+      return {
+        ok: false,
+        code: 'extendscript_runtime_error',
+        message: 'Release clipping mask failed: ' + (eRelease.message || eRelease)
+      };
+    }
+    return {
+      ok: true,
+      layer_name: layer.name,
+      is_clipping: false,
+      context: getContextInfo()
+    };
+  `;
+  },
 
   /**
    * Apply layer mask
@@ -2877,6 +3571,185 @@ export const ExtendScriptSnippets = {
       output_paths: outputs,
       output_dir: "${escapedDir}",
       format: '${format}'
+    };
+  `;
+  },
+
+  /**
+   * Convert the active or named layer to an embedded Smart Object (newPlacedLayer).
+   */
+  convertToSmartObject: (layerName?: string) => {
+    const layerSelect = layerName
+      ? `var sel = __mcp_activateLayerByName("${jsString(layerName)}"); if (!sel.ok) return sel;`
+      : '';
+    return `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${MCP_SMART_OBJECT_HELPERS}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+    app.displayDialogs = DialogModes.NO;
+    ${layerSelect}
+    var layer = app.activeDocument.activeLayer;
+    if (layer.isBackgroundLayer) {
+      return {
+        ok: false,
+        code: 'background_layer',
+        message: 'Cannot convert background layer to Smart Object. Unlock or duplicate it first.'
+      };
+    }
+    if (layer.kind === LayerKind.SMARTOBJECT) {
+      return {
+        ok: true,
+        already_smart_object: true,
+        layer_name: layer.name,
+        kind: String(layer.kind),
+        context: getContextInfo()
+      };
+    }
+    try {
+      executeAction(sTID('newPlacedLayer'), undefined, DialogModes.NO);
+    } catch (eConvert) {
+      return {
+        ok: false,
+        code: 'smart_object_error',
+        message: 'Convert to Smart Object failed: ' + (eConvert.message || eConvert)
+      };
+    }
+    var converted = app.activeDocument.activeLayer;
+    return {
+      ok: true,
+      layer_name: converted.name,
+      kind: String(converted.kind),
+      context: getContextInfo()
+    };
+  `;
+  },
+
+  /**
+   * Replace Smart Object contents from a file (placedLayerReplaceContents + PgNm).
+   */
+  replaceSmartObjectContents: (filePath: string, layerName?: string) => {
+    const layerSelect = layerName
+      ? `var sel = __mcp_activateLayerByName("${jsString(layerName)}"); if (!sel.ok) return sel;`
+      : '';
+    return `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${MCP_SMART_OBJECT_HELPERS}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+    app.displayDialogs = DialogModes.NO;
+    ${layerSelect}
+    var rep = __mcp_replaceSmartObjectContents("${jsString(filePath)}");
+    if (!rep.ok) return rep;
+    return {
+      ok: true,
+      layer_name: rep.layerName,
+      file_path: rep.filePath,
+      context: getContextInfo()
+    };
+  `;
+  },
+
+  /**
+   * Open Smart Object embedded contents for editing (placedLayerEditContents).
+   * Active document becomes the embedded .psb until saved and closed.
+   */
+  editSmartObjectContents: (layerName?: string) => {
+    const layerSelect = layerName
+      ? `var sel = __mcp_activateLayerByName("${jsString(layerName)}"); if (!sel.ok) return sel;`
+      : '';
+    return `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${MCP_SMART_OBJECT_HELPERS}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+    app.displayDialogs = DialogModes.NO;
+    ${layerSelect}
+    var layer = app.activeDocument.activeLayer;
+    if (layer.kind !== LayerKind.SMARTOBJECT) {
+      return {
+        ok: false,
+        code: 'unsupported_layer_kind',
+        message: 'Target layer "' + layer.name + '" is not a Smart Object (kind=' + layer.kind + ').',
+        suggested_next_tool: 'photoshop_get_layers'
+      };
+    }
+    var parentDoc = app.activeDocument;
+    var parentName = parentDoc.name;
+    var parentId = parentDoc.id;
+    var soLayerName = layer.name;
+    try {
+      executeAction(sTID('placedLayerEditContents'), new ActionDescriptor(), DialogModes.NO);
+    } catch (eEdit) {
+      return {
+        ok: false,
+        code: 'smart_object_error',
+        message: 'Edit Smart Object contents failed: ' + (eEdit.message || eEdit)
+      };
+    }
+    var embedded = app.activeDocument;
+    return {
+      ok: true,
+      parent_document: { name: parentName, id: parentId },
+      embedded_document: { name: embedded.name, id: embedded.id },
+      layer_name: soLayerName,
+      context: getContextInfo()
+    };
+  `;
+  },
+
+  /**
+   * Create an independent Smart Object copy (placedLayerMakeCopy).
+   */
+  createSmartObjectViaCopy: (layerName?: string) => {
+    const layerSelect = layerName
+      ? `var sel = __mcp_activateLayerByName("${jsString(layerName)}"); if (!sel.ok) return sel;`
+      : '';
+    return `
+    ${helperFunctions}
+    ${getContextInfo}
+    ${MCP_SMART_OBJECT_HELPERS}
+
+    if (app.documents.length === 0) {
+      return { ok: false, code: 'no_document', message: 'No active document' };
+    }
+    app.displayDialogs = DialogModes.NO;
+    ${layerSelect}
+    var source = app.activeDocument.activeLayer;
+    if (source.kind !== LayerKind.SMARTOBJECT) {
+      return {
+        ok: false,
+        code: 'unsupported_layer_kind',
+        message: 'Target layer "' + source.name + '" is not a Smart Object (kind=' + source.kind + ').',
+        suggested_next_tool: 'photoshop_get_layers'
+      };
+    }
+    var sourceName = source.name;
+    try {
+      executeAction(sTID('placedLayerMakeCopy'), undefined, DialogModes.NO);
+    } catch (eCopy) {
+      return {
+        ok: false,
+        code: 'smart_object_error',
+        message: 'New Smart Object via Copy failed: ' + (eCopy.message || eCopy)
+      };
+    }
+    var copyLayer = app.activeDocument.activeLayer;
+    return {
+      ok: true,
+      source_layer_name: sourceName,
+      new_layer_name: copyLayer.name,
+      kind: String(copyLayer.kind),
+      context: getContextInfo()
     };
   `;
   },

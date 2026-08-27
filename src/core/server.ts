@@ -18,6 +18,7 @@ import { createDocumentTools } from '../tools/document-tools.js';
 import { createLayerTools } from '../tools/layer-tools.js';
 import { createImageTools } from '../tools/image-tools.js';
 import { createImagePlacementTools } from '../tools/image-placement-tools.js';
+import { createSmartObjectTools } from '../tools/smart-object-tools.js';
 import { createLayerTransformTools } from '../tools/layer-transform-tools.js';
 import { createLayerPropertiesTools } from '../tools/layer-properties-tools.js';
 import { createFilterTools } from '../tools/filter-tools.js';
@@ -125,6 +126,7 @@ export class PhotoshopMCPServer {
     this.registerToolDefinitions(createLayerTools(connection));
     this.registerToolDefinitions(createImageTools(connection));
     this.registerToolDefinitions(createImagePlacementTools(connection));
+    this.registerToolDefinitions(createSmartObjectTools(connection));
     this.registerToolDefinitions(createLayerTransformTools(connection));
     this.registerToolDefinitions(createLayerPropertiesTools(connection));
     this.registerToolDefinitions(createFilterTools(connection));

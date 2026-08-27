@@ -7,8 +7,10 @@ import {
   clampInt,
   executeRecipe,
   jsString,
+  RECIPE_ACTION_HELPERS,
   toolFailure,
 } from './_shared.js';
+import { MCP_SMART_OBJECT_HELPERS } from '../../api/extendscript.js';
 
 const TOOL_NAME = 'photoshop_recipe_batch_mockup_replace';
 
@@ -130,6 +132,9 @@ async function runBatchMockupReplace(
     .join(', ');
 
   const body = `
+    ${RECIPE_ACTION_HELPERS}
+    ${MCP_SMART_OBJECT_HELPERS}
+
     var doc = app.activeDocument;
     var targetName = "${jsString(layerName)}";
     var target = null;
@@ -163,10 +168,8 @@ async function runBatchMockupReplace(
         if (!assetFile.exists) {
           return { ok: false, code: 'file_not_found', message: 'Asset missing on disk: ' + spec.asset };
         }
-        var replaceDesc = new ActionDescriptor();
-        replaceDesc.putPath(charIDToTypeID('null'), assetFile);
-        replaceDesc.putInteger(charIDToTypeID('PgNm'), 1);
-        executeAction(stringIDToTypeID('placedLayerReplaceContents'), replaceDesc, DialogModes.NO);
+        var rep = __mcp_replaceSmartObjectContents(spec.asset);
+        if (!rep.ok) return rep;
 
         var outFile = new File(spec.out);
         var jpegOptions = new JPEGSaveOptions();

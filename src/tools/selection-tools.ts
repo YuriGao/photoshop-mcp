@@ -10,9 +10,187 @@ import {
   parseSnippetResult,
   runSnippet,
 } from './atomic-shared.js';
+import type { PhotoshopErrorCode } from '../errors/envelope.js';
+
+function mapSelectionSnippetFailure(parsed: Record<string, unknown>): ToolResult | null {
+  if (parsed.ok !== false) return null;
+  const rawCode = typeof parsed.code === 'string' ? parsed.code : 'extendscript_runtime_error';
+  const code: PhotoshopErrorCode =
+    rawCode === 'no_document'
+      ? 'no_active_document'
+      : rawCode === 'selection_required'
+        ? 'selection_required'
+        : 'extendscript_runtime_error';
+  return atomicFailure({
+    ok: false,
+    code,
+    message: String(parsed.message || 'Selection operation failed'),
+    suggested_next_tool:
+      code === 'selection_required' ? 'photoshop_select_rectangle' : 'photoshop_get_state',
+  });
+}
+
+function parseRequiredPixels(args: Record<string, unknown>): number | null {
+  const value = args.pixels;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.max(1, Math.round(value));
+}
+
+function parseSelectionBounds(
+  parsed: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  const details: Record<string, unknown> = {};
+  if (parsed.bounds !== undefined) details.bounds = parsed.bounds;
+  if (parsed.pixels !== undefined) details.pixels = parsed.pixels;
+  if (parsed.operation !== undefined) details.operation = parsed.operation;
+  if (parsed.shape !== undefined) details.shape = parsed.shape;
+  if (parsed.channel_name !== undefined) details.channel_name = parsed.channel_name;
+  if (parsed.context !== undefined) details.context = parsed.context;
+  return Object.keys(details).length > 0 ? details : undefined;
+}
 
 export function createSelectionTools(connection: PhotoshopConnection): ToolDefinition[] {
   return [
+    {
+      tool: {
+        name: 'photoshop_get_selection_bounds',
+        description:
+          'Read the active pixel selection bounds in document pixels (read-only).\n\n' +
+          'Use when: verifying selection exists and its size/position before mask, fill, or recipe steps.\n' +
+          'Do NOT use when: creating or modifying a selection — use photoshop_select_rectangle or photoshop_select_subject.\n\n' +
+          'Returns: JSON { ok, summary, details: { has_selection, bounds?, context } }.\n' +
+          'Preconditions: active document. Side effects: none.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      handler: async () => getSelectionBounds(connection),
+    },
+    {
+      tool: {
+        name: 'photoshop_select_ellipse',
+        description:
+          'Create an elliptical pixel selection from a bounding box (anti-aliased).\n\n' +
+          'Use when: circular or oval masks, vignettes, or radial edits inside a region.\n' +
+          'Do NOT use when: a rectangular region is enough — use photoshop_select_rectangle.\n\n' +
+          'Returns: JSON { ok, summary, details: { shape, bounds?, context } }.\n' +
+          'Preconditions: active document; right > left and bottom > top. Side effects: replaces current selection.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            left: {
+              type: 'number',
+              description: 'Left edge of bounding box in pixels',
+            },
+            top: {
+              type: 'number',
+              description: 'Top edge of bounding box in pixels',
+            },
+            right: {
+              type: 'number',
+              description: 'Right edge of bounding box in pixels',
+            },
+            bottom: {
+              type: 'number',
+              description: 'Bottom edge of bounding box in pixels',
+            },
+          },
+          required: ['left', 'top', 'right', 'bottom'],
+        },
+      },
+      handler: async (args) => selectEllipse(connection, args),
+    },
+    {
+      tool: {
+        name: 'photoshop_expand_selection',
+        description:
+          'Expand the active pixel selection outward by a pixel amount.\n\n' +
+          'Use when: growing a tight subject selection or adding padding before feather/fill.\n' +
+          'Do NOT use when: no selection exists — create one first.\n\n' +
+          'Returns: JSON { ok, summary, details: { pixels, bounds?, context } }.\n' +
+          'Preconditions: active document and active pixel selection. Side effects: modifies selection.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pixels: {
+              type: 'number',
+              description: 'Pixels to expand by (minimum 1)',
+              minimum: 1,
+            },
+          },
+          required: ['pixels'],
+        },
+      },
+      handler: async (args) => expandSelection(connection, args),
+    },
+    {
+      tool: {
+        name: 'photoshop_contract_selection',
+        description:
+          'Contract (shrink) the active pixel selection inward by a pixel amount.\n\n' +
+          'Use when: tightening a loose selection or trimming halo after expand.\n' +
+          'Do NOT use when: no selection exists — create one first.\n\n' +
+          'Returns: JSON { ok, summary, details: { pixels, bounds?, context } }.\n' +
+          'Preconditions: active document and active pixel selection. Side effects: modifies selection.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pixels: {
+              type: 'number',
+              description: 'Pixels to contract by (minimum 1)',
+              minimum: 1,
+            },
+          },
+          required: ['pixels'],
+        },
+      },
+      handler: async (args) => contractSelection(connection, args),
+    },
+    {
+      tool: {
+        name: 'photoshop_feather_selection',
+        description:
+          'Feather (soften) the edges of the active pixel selection.\n\n' +
+          'Use when: soft transitions before fill, mask, or delete operations.\n' +
+          'Do NOT use when: a hard edge is required or no selection exists.\n\n' +
+          'Returns: JSON { ok, summary, details: { pixels, bounds?, context } }.\n' +
+          'Preconditions: active document and active pixel selection. Side effects: modifies selection edges.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pixels: {
+              type: 'number',
+              description: 'Feather radius in pixels (minimum 1)',
+              minimum: 1,
+            },
+          },
+          required: ['pixels'],
+        },
+      },
+      handler: async (args) => featherSelection(connection, args),
+    },
+    {
+      tool: {
+        name: 'photoshop_save_selection',
+        description:
+          'Save the active pixel selection to a new alpha channel.\n\n' +
+          'Use when: preserving a selection for later reload or batch workflows.\n' +
+          'Do NOT use when: no selection exists — create one first.\n\n' +
+          'Returns: JSON { ok, summary, details: { channel_name, context } }.\n' +
+          'Preconditions: active document and active pixel selection. Side effects: adds alpha channel.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            channel_name: {
+              type: 'string',
+              description: 'Optional name for the new alpha channel (auto-generated if omitted)',
+            },
+          },
+        },
+      },
+      handler: async (args) => saveSelection(connection, args),
+    },
     {
       tool: {
         name: 'photoshop_select_rectangle',
@@ -163,6 +341,198 @@ export function createSelectionTools(connection: PhotoshopConnection): ToolDefin
       handler: async () => contentAwareFill(connection),
     },
   ];
+}
+
+async function getSelectionBounds(connection: PhotoshopConnection): Promise<ToolResult> {
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.getSelectionBounds());
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    if (parsed.ok === false) {
+      const code = parsed.code === 'no_document' ? 'no_active_document' : 'extendscript_runtime_error';
+      return atomicFailure({
+        ok: false,
+        code,
+        message: String(parsed.message || 'Failed to read selection bounds'),
+        suggested_next_tool: 'photoshop_get_state',
+      });
+    }
+
+    const hasSelection = parsed.has_selection === true;
+    const details: Record<string, unknown> = {
+      has_selection: hasSelection,
+    };
+    if (hasSelection && parsed.bounds) {
+      details.bounds = parsed.bounds;
+    }
+    if (parsed.context !== undefined) {
+      details.context = parsed.context;
+    }
+
+    return atomicSuccess(
+      hasSelection ? 'Active pixel selection present' : 'No active pixel selection',
+      details,
+      hasSelection ? 'photoshop_get_preview' : 'photoshop_select_rectangle'
+    );
+  } catch (error) {
+    return atomicFailureFromError(error);
+  }
+}
+
+async function selectEllipse(
+  connection: PhotoshopConnection,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const left = args.left as number;
+  const top = args.top as number;
+  const right = args.right as number;
+  const bottom = args.bottom as number;
+
+  if (right <= left || bottom <= top) {
+    return atomicFailure({
+      ok: false,
+      code: 'invalid_arguments',
+      message: 'Invalid ellipse bounds: right must be greater than left and bottom greater than top',
+      suggested_next_tool: 'photoshop_get_selection_bounds',
+    });
+  }
+
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.selectEllipse(left, top, right, bottom));
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    const failure = mapSelectionSnippetFailure(parsed);
+    if (failure) return failure;
+
+    return atomicSuccess('Elliptical selection created', parseSelectionBounds(parsed));
+  } catch (error) {
+    return atomicFailureFromError(error);
+  }
+}
+
+async function expandSelection(
+  connection: PhotoshopConnection,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const pixels = parseRequiredPixels(args);
+  if (pixels === null) {
+    return atomicFailure({
+      ok: false,
+      code: 'invalid_arguments',
+      message: 'pixels must be a finite number >= 1',
+      suggested_next_tool: 'photoshop_get_selection_bounds',
+    });
+  }
+
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.expandSelection(pixels));
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    const failure = mapSelectionSnippetFailure(parsed);
+    if (failure) return failure;
+
+    return atomicSuccess(`Selection expanded by ${pixels}px`, parseSelectionBounds(parsed));
+  } catch (error) {
+    return atomicFailureFromError(error);
+  }
+}
+
+async function contractSelection(
+  connection: PhotoshopConnection,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const pixels = parseRequiredPixels(args);
+  if (pixels === null) {
+    return atomicFailure({
+      ok: false,
+      code: 'invalid_arguments',
+      message: 'pixels must be a finite number >= 1',
+      suggested_next_tool: 'photoshop_get_selection_bounds',
+    });
+  }
+
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.contractSelection(pixels));
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    const failure = mapSelectionSnippetFailure(parsed);
+    if (failure) return failure;
+
+    return atomicSuccess(`Selection contracted by ${pixels}px`, parseSelectionBounds(parsed));
+  } catch (error) {
+    return atomicFailureFromError(error);
+  }
+}
+
+async function featherSelection(
+  connection: PhotoshopConnection,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const pixels = parseRequiredPixels(args);
+  if (pixels === null) {
+    return atomicFailure({
+      ok: false,
+      code: 'invalid_arguments',
+      message: 'pixels must be a finite number >= 1',
+      suggested_next_tool: 'photoshop_get_selection_bounds',
+    });
+  }
+
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.featherSelection(pixels));
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    const failure = mapSelectionSnippetFailure(parsed);
+    if (failure) return failure;
+
+    return atomicSuccess(`Selection feathered by ${pixels}px`, parseSelectionBounds(parsed));
+  } catch (error) {
+    return atomicFailureFromError(error);
+  }
+}
+
+async function saveSelection(
+  connection: PhotoshopConnection,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const channelName =
+    typeof args.channel_name === 'string' && args.channel_name.length > 0
+      ? args.channel_name
+      : undefined;
+
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.saveSelection(channelName));
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    const failure = mapSelectionSnippetFailure(parsed);
+    if (failure) return failure;
+
+    const name = typeof parsed.channel_name === 'string' ? parsed.channel_name : channelName;
+    return atomicSuccess(
+      name ? `Selection saved to channel "${name}"` : 'Selection saved to new alpha channel',
+      parseSelectionBounds(parsed)
+    );
+  } catch (error) {
+    return atomicFailureFromError(error);
+  }
 }
 
 async function selectRectangle(

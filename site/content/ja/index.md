@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Photoshop MCP
   text: AIでPhotoshopを操作
-  tagline: Cursor、Claude Desktop、自然言語向けMCPサーバー — 102ツール、レシピワークフロー、スタンドアロンWeb UI。
+  tagline: Cursor、Claude Desktop、自然言語向けMCPサーバー — 118ツール、レシピワークフロー、スタンドアロンWeb UI。
   image:
     src: /images/readme-hero.png
     alt: Photoshop MCP — AI駆動のPhotoshop自動化
@@ -24,8 +24,8 @@ features:
     title: 状態認識エージェント
     details: get_state、get_preview、get_capabilitiesで操作前にドキュメントを把握。
   - icon: 🧩
-    title: 102 MCPツール
-    details: 86の原子ツール + 16レシープ（1回のUndoで元に戻せる）。
+    title: 118 MCPツール
+    details: 102の原子ツール + 16レシープ（1回のUndoで元に戻せる）。
   - icon: 🖥️
     title: スタンドアロンUI
     details: IDE不要でClaude、GPT、Geminiとチャット。

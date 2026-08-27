@@ -28,7 +28,8 @@ Recipe tools over atomic chains
   "prepare for web", "export Instagram variants", "apply cinematic color grade",
   "make it pop", "frequency separation", "replace mockup", "organize layers",
   "replace sky", "fade into background", "gradient mask", "dodge and burn",
-  "remove that person", "erase distraction"), prefer the matching
+  "remove that person", "erase distraction", "csv to cards", "batch cards",
+  "data-driven graphics"), prefer the matching
   \`photoshop_recipe_*\` tool over composing 5+ atomic calls yourself. Recipes
   are wrapped in a single history step and are deterministically reversible
   with one undo.
@@ -100,6 +101,9 @@ User intent glossary
   → \`photoshop_recipe_batch_watermark\`
 - id.passport — "passport photo", "visa photo", "ID photo", "vesikalık", "biyometrik"
   → \`photoshop_recipe_passport_photo\`
+- batch.csv_cards — "csv to cards", "batch cards", "data-driven graphics",
+  "mail merge for images", "name badges from spreadsheet", "sertifika bas"
+  → \`photoshop_recipe_csv_to_cards\`; prompt \`ps.csv_to_cards\`
 
 Degrade paths
 - Generative remove / distraction — prefer \`photoshop_generative_remove\`; degrade to
@@ -131,7 +135,7 @@ Guide prompts (MCP prompts/get)
   \`ps.apply_color_grade\`, \`ps.frequency_separation\`, \`ps.batch_mockup_replace\`,
   \`ps.organize_layers\`, \`ps.gradient_fade\`, \`ps.sky_blend\`, \`ps.dodge_burn\`,
   \`ps.remove_distraction\`, \`ps.split_carousel\`, \`ps.batch_watermark\`,
-  \`ps.passport_photo\`
+  \`ps.passport_photo\`, \`ps.csv_to_cards\`
 - Guide prompts (no recipe pair): \`ps.gradient_blend\` — fade via mask gradient;
   \`ps.color_correct\` — tone / contrast fix chain; \`ps.dodge_burn_guide\` — 50% gray
   overlay setup; \`ps.composite_blend\` — place asset + mask + blend mode;

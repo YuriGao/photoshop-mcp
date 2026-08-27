@@ -1,6 +1,6 @@
 # photoshop-mcp
 
-> MCP server for Adobe Photoshop — 1.7.2 — 102 tools (generative AI + recipes), standalone web UI, and state-aware agent workflows. Unofficial; not affiliated with Adobe.
+> MCP server for Adobe Photoshop — 1.7.3 — 118 tools (generative AI + recipes), standalone web UI, and state-aware agent workflows. Unofficial; not affiliated with Adobe.
 
 **Website:** https://alisaitteke.github.io/photoshop-mcp/
 **llms.txt (site):** https://alisaitteke.github.io/photoshop-mcp/llms.txt
@@ -48,7 +48,7 @@ claude mcp add photoshop -- npx -y @alisaitteke/photoshop-mcp
 
 ## Tool surface
 
-- **102 tools** — 86 atomic + 16 recipe (`photoshop_recipe_*`)
+- **118 tools** — 102 atomic + 16 recipe (`photoshop_recipe_*`)
 - **23 MCP prompts** — `ps.remove_background`, `ps.enhance_portrait`, `ps.generative_fill`, …
 - **Generative AI** — fill, remove, expand, upscale, sky replacement, generate image (Adobe account)
 - **State** — `photoshop_get_state`, `photoshop_get_preview`, `photoshop_get_capabilities`

@@ -14,7 +14,7 @@ const LLMS_FULL_URL = `${SITE_URL}/llms-full.txt`;
 const SITE_NAME = 'Photoshop MCP';
 const DEFAULT_TITLE = 'Photoshop MCP — Control Adobe Photoshop with AI';
 const DEFAULT_DESCRIPTION =
-  'MCP server for Cursor, Claude Desktop, and natural language. 102 tools, recipe workflows, generative AI, and standalone web UI. Windows and macOS.';
+  'MCP server for Cursor, Claude Desktop, and natural language. 118 tools, recipe workflows, generative AI, and standalone web UI. Windows and macOS.';
 const KEYWORDS =
   'photoshop mcp, cursor photoshop, claude photoshop, adobe photoshop automation, model context protocol, mcp server, ai photoshop, extendscript, generative fill';
 
@@ -63,7 +63,7 @@ const jsonLd = {
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Windows, macOS',
   description:
-    'MCP server for Adobe Photoshop — 102 tools, generative AI, recipe workflows, and standalone web UI. Control Photoshop from Cursor, Claude, or natural language.',
+    'MCP server for Adobe Photoshop — 118 tools, generative AI, recipe workflows, and standalone web UI. Control Photoshop from Cursor, Claude, or natural language.',
   url: SITE_URL,
   downloadUrl: 'https://www.npmjs.com/package/@alisaitteke/photoshop-mcp',
   softwareVersion: pkg.version,
@@ -139,7 +139,7 @@ const docsSidebar = [
 export default defineConfig({
   title: 'Photoshop MCP',
   description:
-    'Control Adobe Photoshop with AI — MCP server for Cursor, Claude Desktop, and natural language. 102 tools, recipes, standalone web UI.',
+    'Control Adobe Photoshop with AI — MCP server for Cursor, Claude Desktop, and natural language. 118 tools, recipes, standalone web UI.',
   lang: 'en-US',
   srcDir: 'content',
   cleanUrls: true,

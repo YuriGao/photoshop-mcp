@@ -28,7 +28,7 @@ function llmsTxt(): string {
   const v = pkg.version;
   return `# Photoshop MCP
 
-> MCP server for Adobe Photoshop — ${v} — 102 tools (generative AI + 16 recipe workflows), standalone web UI, and state-aware agent workflows. Control Photoshop from Cursor, Claude Desktop, Claude Code, or natural language. Unofficial; not affiliated with Adobe.
+> MCP server for Adobe Photoshop — ${v} — 118 tools (generative AI + 16 recipe workflows), standalone web UI, and state-aware agent workflows. Control Photoshop from Cursor, Claude Desktop, Claude Code, or natural language. Unofficial; not affiliated with Adobe.
 
 Important notes:
 
@@ -96,7 +96,7 @@ function rootLlmsTxt(): string {
   const v = pkg.version;
   return `# photoshop-mcp
 
-> MCP server for Adobe Photoshop — ${v} — 102 tools (generative AI + recipes), standalone web UI, and state-aware agent workflows. Unofficial; not affiliated with Adobe.
+> MCP server for Adobe Photoshop — ${v} — 118 tools (generative AI + recipes), standalone web UI, and state-aware agent workflows. Unofficial; not affiliated with Adobe.
 
 **Website:** ${SITE_URL}/
 **llms.txt (site):** ${SITE_URL}/llms.txt
@@ -144,7 +144,7 @@ claude mcp add photoshop -- npx -y @alisaitteke/photoshop-mcp
 
 ## Tool surface
 
-- **102 tools** — 86 atomic + 16 recipe (\`photoshop_recipe_*\`)
+- **118 tools** — 102 atomic + 16 recipe (\`photoshop_recipe_*\`)
 - **23 MCP prompts** — \`ps.remove_background\`, \`ps.enhance_portrait\`, \`ps.generative_fill\`, …
 - **Generative AI** — fill, remove, expand, upscale, sky replacement, generate image (Adobe account)
 - **State** — \`photoshop_get_state\`, \`photoshop_get_preview\`, \`photoshop_get_capabilities\`
