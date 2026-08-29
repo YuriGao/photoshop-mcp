@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Photoshop MCP
   text: Photoshop mit KI steuern
-  tagline: MCP-Server für Cursor, Claude Desktop und natürliche Sprache — 102 Tools, Recipe-Workflows, eigenständige Web-UI.
+  tagline: MCP-Server für Cursor, Claude Desktop und natürliche Sprache — 118 Tools, Recipe-Workflows, eigenständige Web-UI.
   image:
     src: /images/readme-hero.png
     alt: Photoshop MCP — KI-gesteuerte Photoshop-Automatisierung
@@ -24,8 +24,8 @@ features:
     title: Zustandsbewusste Agenten
     details: get_state, get_preview und get_capabilities vor jeder Aktion.
   - icon: 🧩
-    title: 102 MCP-Tools
-    details: 86 atomische Tools + 16 Recipe-Workflows mit einem Undo-Schritt.
+    title: 118 MCP-Tools
+    details: 102 atomische Tools + 16 Recipe-Workflows mit einem Undo-Schritt.
   - icon: 🖥️
     title: Eigenständige Web-UI
     details: Chat mit Claude, GPT oder Gemini — ohne IDE.

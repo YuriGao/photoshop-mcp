@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Photoshop MCP
   text: Photoshop'u yapay zeka ile yönetin
-  tagline: Cursor, Claude Desktop ve doğal dil için MCP sunucusu — 102 araç, tarif iş akışları, bağımsız web UI.
+  tagline: Cursor, Claude Desktop ve doğal dil için MCP sunucusu — 118 araç, tarif iş akışları, bağımsız web UI.
   image:
     src: /images/readme-hero.png
     alt: Photoshop MCP — Yapay zeka destekli Photoshop otomasyonu
@@ -24,8 +24,8 @@ features:
     title: Durum farkındalığı
     details: get_state, get_preview ve get_capabilities — ajanlar hareket etmeden önce belgeyi bilir.
   - icon: 🧩
-    title: 102 MCP aracı
-    details: 86 atomik araç ve 16 tarif iş akışı; her tarif tek geri alma adımı.
+    title: 118 MCP aracı
+    details: 102 atomik araç ve 16 tarif iş akışı; her tarif tek geri alma adımı.
   - icon: 🖥️
     title: Bağımsız web UI
     details: IDE olmadan Claude, GPT veya Gemini ile sohbet edin; Photoshop'u doğal dille yönetin.

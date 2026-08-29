@@ -14,6 +14,8 @@
 
 **Prerequisites:** Photoshop running on Windows or macOS, Node.js 18+. This is unofficial and not affiliated with Adobe.
 
+**Tool surface:** 118 MCP tools — 102 atomic `photoshop_*` + 16 recipe `photoshop_recipe_*`; 23 MCP prompt templates (`ps.*`).
+
 ## Architecture (agent view)
 
 ```

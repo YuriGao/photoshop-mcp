@@ -2,6 +2,13 @@ import { ToolDefinition, ToolResult } from '../core/tool-registry.js';
 import { PhotoshopConnection } from '../platform/connection.js';
 import { PhotoshopAPIFactory } from '../api/photoshop-api.js';
 import { ExtendScriptSnippets } from '../api/extendscript.js';
+import {
+  atomicFailure,
+  atomicFailureFromError,
+  atomicSuccess,
+  parseSnippetResult,
+  runSnippet,
+} from './atomic-shared.js';
 
 export function createDocumentTools(connection: PhotoshopConnection): ToolDefinition[] {
   return [
@@ -54,6 +61,53 @@ export function createDocumentTools(connection: PhotoshopConnection): ToolDefini
         },
       },
       handler: async () => getDocumentInfo(connection),
+    },
+    {
+      tool: {
+        name: 'photoshop_list_documents',
+        description:
+          'List every open Photoshop document with id, dimensions, and which tab is active (read-only).\n\n' +
+          'Use when: multiple documents are open and you need document_id before switching tabs or closing a specific file.\n' +
+          'Do NOT use when: you only need the active document — use photoshop_get_document_info or photoshop_get_state.\n\n' +
+          'Returns: JSON { ok, summary, details: { count, documents[], active_document_id, context } }.\n' +
+          'Preconditions: none (safe when zero documents open). Side effects: none.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      handler: async () => listDocuments(connection),
+    },
+    {
+      tool: {
+        name: 'photoshop_set_active_document',
+        description:
+          'Switch the active document tab by document_id (preferred), zero-based index, or name.\n\n' +
+          'Use when: working across multiple open files and mutations must target a specific document.\n' +
+          'Do NOT use when: only one document is open — it is already active.\n' +
+          'Do NOT use document_name when duplicate names exist — use document_id from photoshop_list_documents.\n\n' +
+          'Returns: JSON { ok, summary, details: { activated: { id, name }, context } }.\n' +
+          'Preconditions: target document must be open. Provide exactly one of document_id, index, or document_name. Side effects: changes active tab.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            document_id: {
+              type: 'number',
+              description: 'Unique internal document id from photoshop_list_documents (preferred)',
+            },
+            index: {
+              type: 'number',
+              description: 'Zero-based tab order index (leftmost tab is 0)',
+              minimum: 0,
+            },
+            document_name: {
+              type: 'string',
+              description: 'Document name/title (ambiguous if multiple tabs share the same name)',
+            },
+          },
+        },
+      },
+      handler: async (args) => setActiveDocument(connection, args),
     },
     {
       tool: {
@@ -156,6 +210,119 @@ async function createDocument(
       ],
       isError: true,
     };
+  }
+}
+
+async function listDocuments(connection: PhotoshopConnection): Promise<ToolResult> {
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.listDocuments());
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    if (parsed.ok === false) {
+      return atomicFailure({
+        ok: false,
+        code: 'extendscript_runtime_error',
+        message: String(parsed.message || 'Failed to list documents'),
+        suggested_next_tool: 'photoshop_get_state',
+      });
+    }
+
+    const count = typeof parsed.count === 'number' ? parsed.count : 0;
+    const details: Record<string, unknown> = {
+      count,
+      documents: parsed.documents ?? [],
+      active_document_id: parsed.active_document_id ?? null,
+    };
+    if (parsed.context !== undefined) {
+      details.context = parsed.context;
+    }
+
+    return atomicSuccess(
+      count === 0 ? 'No documents open' : `${count} open document${count === 1 ? '' : 's'}`,
+      details,
+      count === 0 ? 'photoshop_create_document' : 'photoshop_get_document_info'
+    );
+  } catch (error) {
+    return atomicFailureFromError(error);
+  }
+}
+
+function countSetActiveIdentifiers(args: Record<string, unknown>): number {
+  let count = 0;
+  if (args.document_id !== undefined && args.document_id !== null) count++;
+  if (args.index !== undefined && args.index !== null) count++;
+  if (typeof args.document_name === 'string' && args.document_name.length > 0) count++;
+  return count;
+}
+
+async function setActiveDocument(
+  connection: PhotoshopConnection,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const identifierCount = countSetActiveIdentifiers(args);
+  if (identifierCount !== 1) {
+    return atomicFailure({
+      ok: false,
+      code: 'invalid_arguments',
+      message:
+        'Exactly one of document_id, index, or document_name is required to set the active document',
+      suggested_next_tool: 'photoshop_list_documents',
+    });
+  }
+
+  const params: { documentId?: number; documentName?: string; index?: number } = {};
+  if (args.document_id !== undefined && args.document_id !== null) {
+    params.documentId = args.document_id as number;
+  } else if (args.index !== undefined && args.index !== null) {
+    params.index = args.index as number;
+  } else {
+    params.documentName = args.document_name as string;
+  }
+
+  try {
+    const raw = await runSnippet(connection, ExtendScriptSnippets.setActiveDocument(params));
+    const parsed = parseSnippetResult(raw);
+    if (!parsed) {
+      return atomicFailureFromError(new Error(`Snippet returned unparseable payload: ${String(raw)}`));
+    }
+
+    if (parsed.ok === false) {
+      const code =
+        parsed.code === 'document_not_found' || parsed.code === 'ambiguous_name'
+          ? parsed.code
+          : 'extendscript_runtime_error';
+      return atomicFailure({
+        ok: false,
+        code,
+        message: String(parsed.message || 'Failed to set active document'),
+        suggested_next_tool: 'photoshop_list_documents',
+        ...(parsed.matching_document_ids
+          ? { suggested_args: { matching_document_ids: parsed.matching_document_ids } }
+          : {}),
+      });
+    }
+
+    const activated = parsed.activated as { id?: number; name?: string } | undefined;
+    const details: Record<string, unknown> = {};
+    if (activated) {
+      details.activated = activated;
+    }
+    if (parsed.context !== undefined) {
+      details.context = parsed.context;
+    }
+
+    return atomicSuccess(
+      activated?.name
+        ? `Active document set to "${activated.name}"`
+        : 'Active document switched',
+      details,
+      'photoshop_get_document_info'
+    );
+  } catch (error) {
+    return atomicFailureFromError(error);
   }
 }
 

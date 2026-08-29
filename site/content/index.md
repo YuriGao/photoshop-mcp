@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Photoshop MCP
   text: Control Adobe Photoshop with AI
-  tagline: MCP server for Cursor, Claude Desktop, and natural language — 102 tools, recipe workflows, standalone web UI.
+  tagline: MCP server for Cursor, Claude Desktop, and natural language — 118 tools, recipe workflows, standalone web UI.
   image:
     src: /images/readme-hero.png
     alt: Photoshop MCP — AI-driven Photoshop automation
@@ -24,8 +24,8 @@ features:
     title: State-aware agents
     details: get_state, get_preview, and get_capabilities so AI assistants know the document before they act — fewer brittle ExtendScript guesses.
   - icon: 🧩
-    title: 102 MCP tools
-    details: 86 atomic tools plus 16 recipe workflows (remove background, export for web, portrait enhance, and more) — each recipe is a single undo step.
+    title: 118 MCP tools
+    details: 102 atomic tools plus 16 recipe workflows (remove background, export for web, portrait enhance, and more) — each recipe is a single undo step.
   - icon: 🖥️
     title: Standalone web UI
     details: Chat with Claude, GPT, or Gemini and drive Photoshop without an IDE. API keys or Claude Code / Gemini CLI accounts.

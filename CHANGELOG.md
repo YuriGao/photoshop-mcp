@@ -5,6 +5,26 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.3] - 2026-08-25
+
+[v1.7.2...v1.7.3](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.2...v1.7.3)
+
+### Features
+
+- feat(analytics): revert to PostHog-only and remove Mixpanel (`6041ea9`)
+
+### Fixes
+
+- fix(ci): install deps before MCP registry sync workflow (`d1af8e1`)
+
+### Other
+
+- ci: add MCP registry-only workflow and resilient npm publish (`6cfc560`)
+
+### Version bumps
+
+- 1.7.3 (`53c25b5`)
+
 ## [1.7.2] - 2026-08-25
 
 [v1.7.1...v1.7.2](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.1...v1.7.2)
@@ -359,19 +379,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 1.1.0 (`6e1c1f0`)
 - 1.0.0 (`17d8d91`)
 
-## [1.7.3] - 2026-08-25
+## [1.7.4] - 2026-08-29
 
-[v1.7.2...HEAD](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.2...HEAD) *(pending tag v1.7.3)*
-
-### Features
-
-- feat(analytics): revert to PostHog-only and remove Mixpanel (`6041ea9`)
-
-### Fixes
-
-- fix(ci): install deps before MCP registry sync workflow (`d1af8e1`)
+[v1.7.3...HEAD](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.3...HEAD) *(pending tag v1.7.4)*
 
 ### Other
 
-- ci: add MCP registry-only workflow and resilient npm publish (`6cfc560`)
+- Expand atomic tool surface to 118 tools and sync agent documentation. (`5a9d3cd`)
 

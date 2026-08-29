@@ -8,7 +8,7 @@ import {
 export const removeBackgroundTemplate: PhotoshopPromptTemplate = {
   name: 'ps.remove_background',
   description:
-    'Remove the background from the active layer using Select Subject, with an optional feather radius and an option to keep a soft contact shadow. Users often say: remove background, cut out, isolate subject, transparent background, arka planı sil.',
+    'Remove the background from the active layer using Select Subject, with an optional feather radius. The keep_shadow argument is accepted but does not yet create a shadow layer (recorded in the recipe response only). Users often say: remove background, cut out, isolate subject, transparent background, arka planı sil.',
   arguments: [
     {
       name: 'feather_px',
@@ -19,7 +19,7 @@ export const removeBackgroundTemplate: PhotoshopPromptTemplate = {
     {
       name: 'keep_shadow',
       description:
-        'When true, duplicate the layer first, blur and darken it to simulate a contact shadow. Default false.',
+        'When true, records intent for a contact shadow in the recipe response. Shadow layer creation is not yet implemented. Default false.',
       required: false,
     },
   ],
@@ -34,7 +34,7 @@ export const removeBackgroundTemplate: PhotoshopPromptTemplate = {
       `1. Call \`photoshop_get_state\` to confirm an active document with a non-background active layer that contains a subject.`,
       `2. Call \`photoshop_get_capabilities\` only if you have not yet this session; verify \`select_subject_v2\` is available.`,
       `3. Call \`photoshop_recipe_remove_background\` with { feather_px: ${feather}, keep_shadow: ${keepShadow} }.`,
-      `   - The recipe internally runs Select Subject, inverts the selection, adds a layer mask, applies the feather, and (if keep_shadow) creates a shadow layer underneath.`,
+      `   - The recipe runs Select Subject, inverts the selection, adds a layer mask, and applies the feather. keep_shadow is accepted but does not yet create a shadow layer (value is recorded in the response only).`,
       `4. Call \`photoshop_get_preview\` to show the result against transparency.`,
       `5. If the mask edge needs refinement, ask the user before adding a refine-edge pass — that step is destructive on the mask.`,
       ``,

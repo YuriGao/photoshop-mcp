@@ -182,7 +182,7 @@ requests into reliable Photoshop actions:
   grade, frequency separation, batch mockup, organize layers, gradient fade,
   sky blend, dodge & burn, remove distraction, split carousel, batch watermark,
   passport photo, csv to cards). Each wraps steps in a single
-  Photoshop history state (one Undo reverts all). **102 tools total** (86 atomic
+  Photoshop history state (one Undo reverts all). **118 tools total** (102 atomic
   + 16 recipe).
 - **Generative AI** — `photoshop_generative_fill`, `photoshop_generative_remove`,
   `photoshop_generative_expand`, `photoshop_generative_upscale`, `photoshop_sky_replacement`,
@@ -599,7 +599,7 @@ Never guess — read get_state after a failure and propose the next single step.
 - **Supports Photoshop 2012-2025+**
 - **ExtendScript API**: Universal compatibility via AppleScript/COM automation
 - **Auto-Detection**: Automatically finds Photoshop installation on your system
-- **102 Tools**: 86 atomic `photoshop_*` + 16 recipe `photoshop_recipe_*`
+- **118 Tools**: 102 atomic `photoshop_*` + 16 recipe `photoshop_recipe_*`
 - **AI/Prompt Layer**: 23 MCP prompt templates (16 recipe + 7 guide), server instructions, state/preview/capabilities tools
 - **Document Management**: Create, open, save, close, crop documents
 - **Layer Operations**: Create, delete, duplicate, merge, transform layers
@@ -607,7 +607,7 @@ Never guess — read get_state after a failure and propose the next single step.
 - **Layer Styles**: Drop shadow, outer glow, stroke, bevel & emboss
 - **Text Formatting**: Font, size, color, alignment controls
 - **Image Placement**: Place images, open files, fit to document
-- **Filters**: Gaussian Blur, Sharpen, Noise, Motion Blur
+- **Filters**: Gaussian Blur, Sharpen, Noise, Motion Blur, High Pass, Smart Blur
 - **Color Adjustments**: Brightness/Contrast, Hue/Saturation, Curves, Auto Levels/Contrast
 - **Color Grading**: 3D LUT (Color Lookup) layers, Vibrance, Exposure, Photo Filter, Gradient Map
 - **Data-Driven Graphics**: CSV/variables XML → one image per row ("mail merge for images")
