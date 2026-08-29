@@ -381,7 +381,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.7.4] - 2026-08-29
 
-[v1.7.3...HEAD](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.3...HEAD) *(pending tag v1.7.4)*
+[v1.7.3...f8ada83](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.3...f8ada83)
 
 ### Other
 

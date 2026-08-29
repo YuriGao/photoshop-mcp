@@ -23,7 +23,18 @@ CHANGELOG_URL="https://github.com/${REPO}/blob/${TAG}/CHANGELOG.md#$(changelog_a
 NPM_NOTE="$(npm_status_note "$PKG" "$VERSION")"
 
 if [[ -n "$PREV" ]]; then
-  COMPARE_URL="https://github.com/${REPO}/compare/${PREV}...${TAG}"
+  PREV_SHA="$(git rev-parse "${PREV}^{commit}" 2>/dev/null || true)"
+  TAG_SHA="$(git rev-parse "${TAG}^{commit}" 2>/dev/null || true)"
+  if [[ -n "$PREV_SHA" && "$PREV_SHA" == "$TAG_SHA" ]]; then
+    RELEASE_COMMIT="$(release_commit_for_version "$PREV" "$VERSION" || true)"
+    if [[ -n "$RELEASE_COMMIT" ]]; then
+      COMPARE_URL="https://github.com/${REPO}/compare/${PREV}...${RELEASE_COMMIT}"
+    else
+      COMPARE_URL="https://github.com/${REPO}/compare/${PREV}...${TAG}"
+    fi
+  else
+    COMPARE_URL="https://github.com/${REPO}/compare/${PREV}...${TAG}"
+  fi
 else
   COMPARE_URL=""
 fi
