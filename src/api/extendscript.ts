@@ -126,6 +126,7 @@ function getContextInfo() {
 
     if (doc) {
       context.document = {};
+      try { context.document.id = doc.id; } catch (e) {}
       try { context.document.name = doc.name; } catch (e) {}
       try { context.document.width = doc.width.as('px'); } catch (e) {}
       try { context.document.height = doc.height.as('px'); } catch (e) {}
@@ -630,7 +631,9 @@ export const ExtendScriptSnippets = {
   `,
 
   /**
-   * Place an image file as a layer
+   * Place an image file as a layer.
+   * x/y are absolute canvas coordinates for the placed layer's top-left bound
+   * (not an offset from Photoshop's default centered Place).
    */
   placeImage: (filePath: string, x = 0, y = 0) => `
     ${helperFunctions}
@@ -644,30 +647,41 @@ export const ExtendScriptSnippets = {
     if (!imageFile.exists) {
       throw new Error('Image file not found: ${jsString(filePath)}');
     }
+
+    var targetX = ${x};
+    var targetY = ${y};
     
-    // Place image using ActionDescriptor
     var desc = new ActionDescriptor();
     desc.putPath(cTID('null'), imageFile);
     desc.putEnumerated(cTID('FTcs'), cTID('QCSt'), cTID('Qcsa'));
     
     var offsetDesc = new ActionDescriptor();
-    offsetDesc.putUnitDouble(cTID('Hrzn'), cTID('#Pxl'), ${x});
-    offsetDesc.putUnitDouble(cTID('Vrtc'), cTID('#Pxl'), ${y});
+    offsetDesc.putUnitDouble(cTID('Hrzn'), cTID('#Pxl'), 0);
+    offsetDesc.putUnitDouble(cTID('Vrtc'), cTID('#Pxl'), 0);
     desc.putObject(cTID('Ofst'), cTID('Ofst'), offsetDesc);
     
     executeAction(cTID('Plc '), desc, DialogModes.NO);
+
+    var layer = app.activeDocument.activeLayer;
+    try {
+      var placedBounds = layer.bounds;
+      var left = placedBounds[0].as('px');
+      var top = placedBounds[1].as('px');
+      layer.translate(targetX - left, targetY - top);
+    } catch (eMove) {}
     
     var result = {
       placed: true,
       filePath: "${jsString(filePath)}",
-      position: { x: ${x}, y: ${y} },
+      position: { x: targetX, y: targetY, semantics: 'absolute_top_left' },
       context: getContextInfo()
     };
     try {
-      var layer = app.activeDocument.activeLayer;
       result.layerName = layer.name;
       var bounds = layer.bounds;
       result.layerBounds = {
+        left: bounds[0].as('px'),
+        top: bounds[1].as('px'),
         width: bounds[2].as('px') - bounds[0].as('px'),
         height: bounds[3].as('px') - bounds[1].as('px')
       };
@@ -1105,9 +1119,12 @@ export const ExtendScriptSnippets = {
   `,
 
   /**
-   * Set layer blend mode
+   * Set layer blend mode.
+   * `blendMode` is an ExtendScript BlendMode identifier (e.g. COLORBLEND, not COLOR).
+   * Darker Color / Lighter Color fall back to Action Manager when the DOM enum is absent.
    */
   setLayerBlendMode: (blendMode: string) => `
+    ${helperFunctions}
     ${getContextInfo}
     
     if (app.documents.length === 0) {
@@ -1115,8 +1132,31 @@ export const ExtendScriptSnippets = {
     }
     var doc = app.activeDocument;
     var layer = doc.activeLayer;
-    
-    layer.blendMode = BlendMode.${blendMode};
+    var token = "${jsString(blendMode)}";
+    var applied = false;
+    try {
+      if (typeof BlendMode !== 'undefined' && BlendMode[token] !== undefined) {
+        layer.blendMode = BlendMode[token];
+        applied = true;
+      }
+    } catch (eDom) {}
+    if (!applied) {
+      var amKey = {
+        DARKERCOLOR: 'darkerColor',
+        LIGHTERCOLOR: 'lighterColor',
+        COLORBLEND: 'color',
+        COLOR: 'color'
+      }[token];
+      if (!amKey) {
+        throw new Error('Invalid enumeration value: BlendMode.' + token);
+      }
+      var desc = new ActionDescriptor();
+      var ref = new ActionReference();
+      ref.putEnumerated(cTID('Lyr '), cTID('Ordn'), cTID('Trgt'));
+      desc.putReference(cTID('null'), ref);
+      desc.putEnumerated(cTID('Md  '), cTID('BlnM'), sTID(amKey));
+      executeAction(cTID('setd'), desc, DialogModes.NO);
+    }
     
     var result = { 
       updated: true,
@@ -3175,12 +3215,18 @@ export const ExtendScriptSnippets = {
       fx.putEnumerated(cTID('Md  '), cTID('BlnM'), cTID('Mltp'));
       fx.putObject(cTID('Clr '), cTID('RGBC'), rgb);
       fx.putUnitDouble(cTID('Opct'), cTID('#Prc'), ${opacity});
+      fx.putBoolean(cTID('uglg'), false);
       fx.putUnitDouble(cTID('lagl'), cTID('#Ang'), ${angle});
       fx.putUnitDouble(cTID('Dstn'), cTID('#Pxl'), ${distance});
       fx.putUnitDouble(cTID('Ckmt'), cTID('#Pxl'), 0);
       fx.putUnitDouble(cTID('blur'), cTID('#Pxl'), ${size});
-      fx.putBoolean(cTID('uglg'), true);
-      effects.putObject(cTID('DrSh'), fx);`;
+      fx.putUnitDouble(cTID('Nose'), cTID('#Prc'), 0);
+      fx.putBoolean(cTID('AntA'), false);
+      var contour = new ActionDescriptor();
+      contour.putString(cTID('Nm  '), 'Linear');
+      fx.putObject(cTID('TrnS'), cTID('ShpC'), contour);
+      fx.putBoolean(sTID('layerConceals'), true);
+      effects.putObject(cTID('DrSh'), cTID('DrSh'), fx);`;
     } else if (style === 'outer_glow') {
       styleDescriptor = `
       var fx = new ActionDescriptor();
@@ -3193,7 +3239,7 @@ export const ExtendScriptSnippets = {
       fx.putUnitDouble(cTID('Nose'), cTID('#Prc'), 0);
       fx.putUnitDouble(cTID('ShdN'), cTID('#Prc'), 0);
       fx.putBoolean(cTID('AntA'), true);
-      effects.putObject(cTID('OrGl'), fx);`;
+      effects.putObject(cTID('OrGl'), cTID('OrGl'), fx);`;
     } else if (style === 'stroke') {
       styleDescriptor = `
       var fx = new ActionDescriptor();
@@ -3205,7 +3251,7 @@ export const ExtendScriptSnippets = {
       fx.putUnitDouble(cTID('Sz  '), cTID('#Pxl'), ${size});
       fx.putObject(cTID('Clr '), cTID('RGBC'), rgb);
       fx.putBoolean(sTID('overprint'), false);
-      effects.putObject(sTID('frameFX'), fx);`;
+      effects.putObject(sTID('frameFX'), sTID('frameFX'), fx);`;
     } else {
       styleDescriptor = `
       var fx = new ActionDescriptor();
@@ -3226,7 +3272,7 @@ export const ExtendScriptSnippets = {
       fx.putEnumerated(cTID('sdwM'), cTID('BlnM'), cTID('Mltp'));
       fx.putObject(cTID('sdwC'), cTID('RGBC'), rgb);
       fx.putUnitDouble(cTID('sdwO'), cTID('#Prc'), ${opacity});
-      effects.putObject(cTID('ebbl'), fx);`;
+      effects.putObject(cTID('ebbl'), cTID('ebbl'), fx);`;
     }
     return `
     ${helperFunctions}

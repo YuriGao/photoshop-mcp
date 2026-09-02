@@ -1,5 +1,6 @@
 import { Logger } from '../utils/logger.js';
 import { PhotoshopConnection } from '../platform/connection.js';
+import { documentGuardScript, getTargetDocumentId } from '../core/document-target.js';
 
 export type APIType = 'UXP' | 'ExtendScript';
 
@@ -102,6 +103,9 @@ class ExtendScriptPhotoshopAPI implements PhotoshopAPI {
     // textItem.position, doc.crop bounds, etc.) behaves consistently
     // regardless of the user's Photoshop preferences. The user's original
     // preferences are restored in the finally block.
+    const targetId = getTargetDocumentId();
+    const documentGuard =
+      typeof targetId === 'number' ? documentGuardScript(targetId) : '';
     return `
 (function() {
   var __originalRulerUnits = null;
@@ -133,6 +137,8 @@ class ExtendScriptPhotoshopAPI implements PhotoshopAPI {
   try {
     try { app.preferences.rulerUnits = Units.PIXELS; } catch (e) {}
     try { app.preferences.typeUnits = TypeUnits.POINTS; } catch (e) {}
+
+    ${documentGuard}
 
     var result = (function() {
       ${script}

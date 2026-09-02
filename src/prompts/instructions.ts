@@ -18,6 +18,9 @@ State before action
   \`photoshop_get_state\` to confirm what is currently open. Treat its output as
   the source of truth for document dimensions, activeLayer, selection bounds and color
   mode.
+- Capture \`document.id\` from \`photoshop_get_state\` (or \`photoshop_list_documents\`)
+  and pass it as optional \`document_id\` on mutating tools. Photoshop's active tab
+  can change outside this integration; \`document_id\` pins the edit to that file.
 - For visual confirmation after meaningful edits, call
   \`photoshop_get_preview\` (cheap, side-effect free JPEG snapshot). Use it
   sparingly — once per major step, not per atomic tool.
@@ -52,6 +55,8 @@ Error recovery contract
   along with MCP's \`isError: true\`. When you see this, follow the
   \`suggested_next_tool\` hint instead of guessing or retrying blindly.
 - Common codes you should be ready to handle without asking the user:
+  - \`document_not_found\` — the \`document_id\` you passed is not open;
+    call \`photoshop_list_documents\` and retry with a current id.
   - \`no_active_document\` — call \`photoshop_open_image\` or
     \`photoshop_create_document\` first.
   - \`no_active_layer\` / \`layer_not_found\` — list layers with

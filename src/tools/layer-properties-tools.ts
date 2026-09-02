@@ -2,6 +2,7 @@ import { ToolDefinition, ToolResult } from '../core/tool-registry.js';
 import { PhotoshopConnection } from '../platform/connection.js';
 import { PhotoshopAPIFactory } from '../api/photoshop-api.js';
 import { ExtendScriptSnippets } from '../api/extendscript.js';
+import { LAYER_BLEND_MODE_ENUM, resolveLayerBlendMode } from './blend-mode.js';
 
 export function createLayerPropertiesTools(connection: PhotoshopConnection): ToolDefinition[] {
   return [
@@ -38,42 +39,18 @@ export function createLayerPropertiesTools(connection: PhotoshopConnection): Too
     {
       tool: {
         name: 'photoshop_set_layer_blend_mode',
-        description: 'Set the blend mode of the active layer',
+        description:
+          'Set the blend mode of the active layer.\n\n' +
+          '`COLOR` is the Photoshop UI name (Colorize); it is mapped to ExtendScript `BlendMode.COLORBLEND`.',
         inputSchema: {
           type: 'object',
           properties: {
             blendMode: {
               type: 'string',
-              description: 'Blend mode name',
-              enum: [
-                'NORMAL',
-                'DISSOLVE',
-                'DARKEN',
-                'MULTIPLY',
-                'COLORBURN',
-                'LINEARBURN',
-                'DARKERCOLOR',
-                'LIGHTEN',
-                'SCREEN',
-                'COLORDODGE',
-                'LINEARDODGE',
-                'LIGHTERCOLOR',
-                'OVERLAY',
-                'SOFTLIGHT',
-                'HARDLIGHT',
-                'VIVIDLIGHT',
-                'LINEARLIGHT',
-                'PINLIGHT',
-                'HARDMIX',
-                'DIFFERENCE',
-                'EXCLUSION',
-                'SUBTRACT',
-                'DIVIDE',
-                'HUE',
-                'SATURATION',
-                'COLOR',
-                'LUMINOSITY',
-              ],
+              description:
+                'Blend mode (Photoshop UI name). COLOR maps to BlendMode.COLORBLEND. ' +
+                'DARKERCOLOR / LIGHTERCOLOR use Action Manager if the DOM enum is missing.',
+              enum: [...LAYER_BLEND_MODE_ENUM],
             },
           },
           required: ['blendMode'],
@@ -213,20 +190,32 @@ async function setLayerBlendMode(
   connection: PhotoshopConnection,
   args: Record<string, unknown>
 ): Promise<ToolResult> {
-  const blendMode = args.blendMode as string;
+  const requested = typeof args.blendMode === 'string' ? args.blendMode : '';
+  const extendScriptToken = resolveLayerBlendMode(requested);
+  if (!extendScriptToken) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: `Error setting blend mode: unknown blendMode "${requested}"`,
+        },
+      ],
+      isError: true,
+    };
+  }
 
   try {
     const apiFactory = new PhotoshopAPIFactory(connection);
     const api = await apiFactory.createAPI();
 
-    const script = ExtendScriptSnippets.setLayerBlendMode(blendMode);
+    const script = ExtendScriptSnippets.setLayerBlendMode(extendScriptToken);
     await api.executeScript(script);
 
     return {
       content: [
         {
           type: 'text' as const,
-          text: `Layer blend mode set to ${blendMode}`,
+          text: `Layer blend mode set to ${requested}`,
         },
       ],
     };

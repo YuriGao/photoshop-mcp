@@ -10,9 +10,11 @@ export function createImagePlacementTools(connection: PhotoshopConnection): Tool
         name: 'photoshop_place_image',
         description:
           'Place an external image file as a new layer in the active document.\n\n' +
-          'Use when: compositing assets into an open document at a specific offset.\n' +
+          'x/y are absolute canvas coordinates for the placed layer\'s top-left bound in pixels ' +
+          '(0,0 = document top-left). They are NOT an offset from Photoshop\'s default centered Place.\n\n' +
+          'Use when: compositing assets into an open document at a known position.\n' +
           'Do NOT use when: opening a file as a new document — use photoshop_open_image.\n\n' +
-          'Returns: placed layer name, bounds, and context.\n' +
+          'Returns: placed layer name, bounds, and position.semantics = absolute_top_left.\n' +
           'Preconditions: active document; file must exist. Side effects: adds a new layer.',
         inputSchema: {
           type: 'object',
@@ -23,12 +25,12 @@ export function createImagePlacementTools(connection: PhotoshopConnection): Tool
             },
             x: {
               type: 'number',
-              description: 'X position offset in pixels (default: 0)',
+              description: 'Absolute canvas X of the placed layer top-left, in pixels (default: 0)',
               default: 0,
             },
             y: {
               type: 'number',
-              description: 'Y position offset in pixels (default: 0)',
+              description: 'Absolute canvas Y of the placed layer top-left, in pixels (default: 0)',
               default: 0,
             },
           },
@@ -67,8 +69,8 @@ async function placeImage(
   args: Record<string, unknown>
 ): Promise<ToolResult> {
   const filePath = args.filePath as string;
-  const x = (args.x as number) || 0;
-  const y = (args.y as number) || 0;
+  const x = typeof args.x === 'number' && Number.isFinite(args.x) ? args.x : 0;
+  const y = typeof args.y === 'number' && Number.isFinite(args.y) ? args.y : 0;
 
   try {
     const apiFactory = new PhotoshopAPIFactory(connection);
@@ -81,7 +83,7 @@ async function placeImage(
       content: [
         {
           type: 'text' as const,
-          text: `Image placed successfully: ${filePath}\nPosition: (${x}, ${y})\nResult: ${JSON.stringify(result)}`,
+          text: `Image placed successfully: ${filePath}\nPosition (absolute top-left): (${x}, ${y})\nResult: ${JSON.stringify(result)}`,
         },
       ],
     };

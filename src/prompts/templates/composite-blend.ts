@@ -46,7 +46,7 @@ export const compositeBlendTemplate: PhotoshopPromptTemplate = {
     const pathWarning =
       imagePath === ''
         ? `   - WARNING: no image_path provided — ask the user for an absolute file path before placing.`
-        : `   - Place with { filePath: "${imagePath}" } at the correct offset (adjust x/y after preview).`;
+        : `   - Place with { filePath: "${imagePath}", x, y } where x/y are absolute canvas top-left pixels (0,0 = document corner).`;
 
     const text = [
       `Goal: Composite an external image into the active document with optional masking and blend mode.`,

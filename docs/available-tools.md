@@ -79,6 +79,8 @@ photoshop_set_active_document({ document_id: 42 })
 photoshop_set_active_document({ index: 0 })
 ```
 
+Mutating tools (and most document-scoped reads) also accept optional `document_id`. Pass the id from `photoshop_get_state` / `photoshop_list_documents` so a Photoshop UI tab switch cannot retarget the edit. Omitted = current active document (previous behavior). Unknown ids fail with `document_not_found`.
+
 #### `photoshop_save_document`
 Save the active document.
 
@@ -189,7 +191,7 @@ photoshop_set_layer_opacity({ opacity: 75 })
 Set the blend mode of the active layer.
 
 **Parameters:**
-- `blendMode` (string, required): Blend mode (NORMAL, MULTIPLY, SCREEN, OVERLAY, etc.)
+- `blendMode` (string, required): Photoshop UI blend-mode name (NORMAL, MULTIPLY, SCREEN, OVERLAY, COLOR, …)
 
 ```javascript
 // Example: Set blend mode to multiply
@@ -197,6 +199,8 @@ photoshop_set_layer_blend_mode({ blendMode: "MULTIPLY" })
 ```
 
 Available blend modes: NORMAL, DISSOLVE, DARKEN, MULTIPLY, COLORBURN, LINEARBURN, DARKERCOLOR, LIGHTEN, SCREEN, COLORDODGE, LINEARDODGE, LIGHTERCOLOR, OVERLAY, SOFTLIGHT, HARDLIGHT, VIVIDLIGHT, LINEARLIGHT, PINLIGHT, HARDMIX, DIFFERENCE, EXCLUSION, SUBTRACT, DIVIDE, HUE, SATURATION, COLOR, LUMINOSITY
+
+`COLOR` is the UI name for Color blend (colorize). The server maps it to ExtendScript `BlendMode.COLORBLEND`. `LUMINOSITY` is already the DOM name. `DARKERCOLOR` / `LIGHTERCOLOR` use Action Manager when the classic `BlendMode` enum does not expose them.
 
 #### `photoshop_set_layer_visibility`
 Show or hide the active layer.
@@ -945,11 +949,13 @@ Place an image file as a layer in the active document.
 
 **Parameters:**
 - `filePath` (string, required): Full path to the image file
-- `x` (number, optional): X position offset in pixels (default: 0)
-- `y` (number, optional): Y position offset in pixels (default: 0)
+- `x` (number, optional): Absolute canvas X of the placed layer **top-left**, in pixels (default: 0 = document left edge)
+- `y` (number, optional): Absolute canvas Y of the placed layer **top-left**, in pixels (default: 0 = document top edge)
+
+`x`/`y` are **not** an offset from Photoshop's default centered Place. After Place, the server translates the layer so `layer.bounds` top-left matches `(x, y)`.
 
 ```javascript
-// Example: Place an image at specific position
+// Example: Place so the layer's top-left sits at (100, 200)
 photoshop_place_image({
   filePath: "/Users/username/Pictures/photo.jpg",
   x: 100,
@@ -1010,7 +1016,7 @@ Apply a layer effect (Action Manager `layerEffects`) to the active layer.
 - `opacity` (number, optional): 0-100 (default 60)
 - `size` (number, optional): Blur/size in px — stroke width for stroke (default 10)
 - `distance` (number, optional): Offset in px, drop shadow only (default 8)
-- `angle` (number, optional): Light angle in degrees (default 120)
+- `angle` (number, optional): Light angle in degrees (default 120). Drop shadow uses this local angle (`Use Global Light` is off).
 
 ```javascript
 // Example: soft drop shadow on the active layer
