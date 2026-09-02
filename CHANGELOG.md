@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `photoshop_recipe_remove_background` falls back to Color Range on uniform/high-key studio backgrounds (`details.method`).
 - Optional `document_id` on mutating tools pins edits to a document from `get_state` / `list_documents`; `document.id` is included in context.
 - Drop shadow no longer sets a locale-specific "Linear" contour name; Color Range fallback writes both Lab min and max; `place_image` fails instead of silently skipping translate.
+- Wrap generative `prompt` values in ExtendScript string literals (`jsStringLiteral`); non-ASCII is `\uXXXX`-escaped so multi-word prompts no longer break JSX syntax ([#31](https://github.com/alisaitteke/photoshop-mcp/issues/31)).
 
 ## [1.7.3] - 2026-08-25
 

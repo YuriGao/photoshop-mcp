@@ -3,7 +3,7 @@
  * ExtendScript is the legacy scripting API for Photoshop
  */
 
-import { jsString } from '../utils/js-string.js';
+import { jsString, jsStringLiteral } from '../utils/js-string.js';
 
 /**
  * Helper functions for character/string ID conversion
@@ -2026,7 +2026,7 @@ export const ExtendScriptSnippets = {
    * @see https://theiviaxx.github.io/photoshop-docs/Photoshop/Selection/store.html
    */
   saveSelection: (channelName?: string) => {
-    const channelNameLiteral = channelName ? jsString(channelName) : 'null';
+    const channelNameLiteral = channelName ? jsStringLiteral(channelName) : 'null';
     return `
     ${helperFunctions}
     ${getContextInfo}
@@ -2940,7 +2940,7 @@ export const ExtendScriptSnippets = {
   `,
 
   generativeFill: (prompt: string) => {
-    const escaped = jsString(prompt);
+    const escaped = jsStringLiteral(prompt);
     return `
       ${helperFunctions}
       ${ExtendScriptSnippets.generativeHelpers()}
@@ -3036,8 +3036,8 @@ export const ExtendScriptSnippets = {
   `,
 
   generativeExpand: (direction: string, prompt: string) => {
-    const escaped = jsString(prompt);
-    const dir = jsString(direction);
+    const escaped = jsStringLiteral(prompt);
+    const dir = jsStringLiteral(direction);
     return `
       ${helperFunctions}
       ${ExtendScriptSnippets.generativeHelpers()}
@@ -3105,7 +3105,7 @@ export const ExtendScriptSnippets = {
   `,
 
   skyReplacement: (skyImagePath: string) => {
-    const escaped = jsString(skyImagePath);
+    const escaped = jsStringLiteral(skyImagePath);
     return `
       ${helperFunctions}
       ${ExtendScriptSnippets.generativeHelpers()}
@@ -3144,7 +3144,7 @@ export const ExtendScriptSnippets = {
   },
 
   generateImage: (prompt: string, width: number, height: number) => {
-    const escaped = jsString(prompt);
+    const escaped = jsStringLiteral(prompt);
     return `
       ${helperFunctions}
       ${ExtendScriptSnippets.generativeHelpers()}

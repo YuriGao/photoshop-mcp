@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { jsString } from '../src/utils/js-string.js';
+import { jsString, jsStringLiteral } from '../src/utils/js-string.js';
 
 // Characters built via fromCharCode so no raw control/line-terminator bytes
 // end up in this source file.
@@ -46,5 +46,20 @@ describe('jsString', () => {
     // ...and must evaluate back to the exact original string.
     // eslint-disable-next-line no-eval
     expect(eval(`"${literal}"`)).toBe(nasty);
+  });
+
+  it('escapes non-ASCII as \\uXXXX so Windows codepages cannot mangle prompts', () => {
+    expect(jsString('São Paulo')).toBe('S\\u00e3o Paulo');
+    expect(jsString('não')).toBe('n\\u00e3o');
+  });
+
+  it('jsStringLiteral wraps the escaped value in double quotes', () => {
+    expect(jsStringLiteral('Photorealistic, highly detailed skyline')).toBe(
+      '"Photorealistic, highly detailed skyline"'
+    );
+    expect(jsStringLiteral('say "hi"')).toBe('"say \\"hi\\""');
+    expect(jsStringLiteral('São')).toBe('"S\\u00e3o"');
+    // eslint-disable-next-line no-eval
+    expect(eval(jsStringLiteral('São Paulo — "skyline"'))).toBe('São Paulo — "skyline"');
   });
 });
