@@ -663,12 +663,10 @@ export const ExtendScriptSnippets = {
     executeAction(cTID('Plc '), desc, DialogModes.NO);
 
     var layer = app.activeDocument.activeLayer;
-    try {
-      var placedBounds = layer.bounds;
-      var left = placedBounds[0].as('px');
-      var top = placedBounds[1].as('px');
-      layer.translate(targetX - left, targetY - top);
-    } catch (eMove) {}
+    var placedBounds = layer.bounds;
+    var left = placedBounds[0].as('px');
+    var top = placedBounds[1].as('px');
+    layer.translate(targetX - left, targetY - top);
     
     var result = {
       placed: true,
@@ -3222,9 +3220,6 @@ export const ExtendScriptSnippets = {
       fx.putUnitDouble(cTID('blur'), cTID('#Pxl'), ${size});
       fx.putUnitDouble(cTID('Nose'), cTID('#Prc'), 0);
       fx.putBoolean(cTID('AntA'), false);
-      var contour = new ActionDescriptor();
-      contour.putString(cTID('Nm  '), 'Linear');
-      fx.putObject(cTID('TrnS'), cTID('ShpC'), contour);
       fx.putBoolean(sTID('layerConceals'), true);
       effects.putObject(cTID('DrSh'), cTID('DrSh'), fx);`;
     } else if (style === 'outer_glow') {

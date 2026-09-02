@@ -144,6 +144,14 @@ async function runRemoveBackground(
       }
     }
 
+    function __mcp_labColorDesc(sc) {
+      var cDesc = new ActionDescriptor();
+      cDesc.putDouble(charIDToTypeID('Lmnc'), sc.lab.l);
+      cDesc.putDouble(charIDToTypeID('A   '), sc.lab.a);
+      cDesc.putDouble(charIDToTypeID('B   '), sc.lab.b);
+      return cDesc;
+    }
+
     function __mcp_colorRangeFromRgb(r, g, b, fuzziness) {
       var sc = new SolidColor();
       sc.rgb.red = r;
@@ -151,11 +159,9 @@ async function runRemoveBackground(
       sc.rgb.blue = b;
       var desc = new ActionDescriptor();
       desc.putInteger(charIDToTypeID('Fzns'), fuzziness);
-      var cDesc = new ActionDescriptor();
-      cDesc.putDouble(charIDToTypeID('Lmnc'), sc.lab.l);
-      cDesc.putDouble(charIDToTypeID('A   '), sc.lab.a);
-      cDesc.putDouble(charIDToTypeID('B   '), sc.lab.b);
-      desc.putObject(charIDToTypeID('Mnm '), charIDToTypeID('LbCl'), cDesc);
+      var lab = __mcp_labColorDesc(sc);
+      desc.putObject(charIDToTypeID('Mnm '), charIDToTypeID('LbCl'), lab);
+      desc.putObject(charIDToTypeID('Mxm '), charIDToTypeID('LbCl'), __mcp_labColorDesc(sc));
       desc.putInteger(stringIDToTypeID('colorModel'), 0);
       executeAction(charIDToTypeID('ClrR'), desc, DialogModes.NO);
     }
