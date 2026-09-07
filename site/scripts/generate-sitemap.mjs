@@ -1,7 +1,7 @@
 /**
  * Post-build sitemap for the marketing site + copy public assets into dist.
  */
-import { cpSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -38,7 +38,7 @@ function toUrl(htmlPath) {
   if (rel.endsWith('/index.html')) {
     return `${BASE_URL}/${rel.slice(0, -'/index.html'.length)}/`;
   }
-  return `${BASE_URL}/${rel.replace(/\.html$/, '')}`;
+  return `${BASE_URL}/${rel.replace(/\.html$/, '')}/`;
 }
 
 copyPublicAssets();
@@ -46,7 +46,7 @@ copyPublicAssets();
 const staticUrls = [`${BASE_URL}/llms.txt`, `${BASE_URL}/llms-full.txt`, `${BASE_URL}/ai.txt`];
 
 const files = collectHtmlFiles(DIST);
-const urls = [...files.map((f) => toUrl(f)).filter(Boolean), ...staticUrls].sort();
+const urls = [...new Set([...files.map((f) => toUrl(f)).filter(Boolean), ...staticUrls])].sort();
 
 const xml = [
   '<?xml version="1.0" encoding="UTF-8"?>',
@@ -58,4 +58,25 @@ const xml = [
 
 writeFileSync(join(DIST, 'sitemap.xml'), xml, 'utf8');
 console.log(`sitemap.xml written (${urls.length} URLs)`);
+
+// GitHub Pages maps /foo → foo.html, but /foo/ only works with foo/index.html.
+// VitePress cleanUrls emit foo.html; duplicate into foo/index.html so github.io
+// redirects that keep a trailing slash still resolve.
+function materializeTrailingSlashIndexes(dir) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) {
+      materializeTrailingSlashIndexes(path);
+      continue;
+    }
+    if (!name.endsWith('.html') || name === 'index.html' || name === '404.html') continue;
+    const destDir = path.slice(0, -'.html'.length);
+    const dest = join(destDir, 'index.html');
+    if (existsSync(dest)) continue;
+    mkdirSync(destDir, { recursive: true });
+    copyFileSync(path, dest);
+  }
+}
+
+materializeTrailingSlashIndexes(DIST);
 
