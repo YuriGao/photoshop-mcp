@@ -242,6 +242,8 @@ async function main(): Promise<void> {
   });
   await t.run('photoshop_set_layer_opacity', { opacity: 85 });
   await t.run('photoshop_set_layer_blend_mode', { blendMode: 'MULTIPLY' });
+  await t.run('photoshop_set_layer_blend_mode', { blendMode: 'COLOR' });
+  await t.run('photoshop_apply_layer_style', { style: 'drop_shadow' });
   await t.run('photoshop_set_layer_visibility', { visible: true });
   await t.run('photoshop_rename_layer', { name: 'MCP_Paint_Renamed' });
   await t.run('photoshop_duplicate_layer');
@@ -662,7 +664,7 @@ async function main(): Promise<void> {
   await t.run('photoshop_set_text_alignment', { alignment: 'CENTER' });
   await t.run('photoshop_update_text_content', { text: 'MCP Updated' });
 
-  console.log('\n=== Phase 10: Image placement ===');
+  console.log('\n=== Phase 10: Image placement (absolute top-left x/y) ===');
   await t.run('photoshop_place_image', { filePath: testPng, x: 400, y: 200 });
   await t.run('photoshop_open_image', { filePath: testPng });
   await t.run('photoshop_execute_script', {

@@ -34,7 +34,7 @@ export function createStyleTools(connection: PhotoshopConnection): ToolDefinitio
           'Use when: quick presentational effects on the active layer (cards, buttons, mockups, text pop).\n' +
           'Do NOT use when: you need full custom layer-effects control — use photoshop_execute_script with a custom layerEffects descriptor.\n\n' +
           'Returns: JSON { ok, summary, details: { style, layer_name } }.\n' +
-          'Preconditions: active document with an active pixel/text layer. Side effects: sets the chosen effect on the active layer.',
+          'Preconditions: active document with an active pixel/text layer. Side effects: sets the chosen effect on the active layer. Drop shadow uses the given `angle` (Use Global Light is off).',
         inputSchema: {
           type: 'object',
           properties: {

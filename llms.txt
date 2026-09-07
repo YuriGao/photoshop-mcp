@@ -24,7 +24,7 @@ npx -p @alisaitteke/photoshop-mcp photoshop-mcp-ui
 get_capabilities → get_state → (recipe or atomic tool) → get_preview to verify
 ```
 
-Prefer `photoshop_recipe_*` for multi-step outcomes (single undo step). Use atomic `photoshop_*` tools for fine-grained edits. On failure, read structured error envelopes (`code`, `suggested_next_tool`) and call `get_state` before retrying.
+Prefer `photoshop_recipe_*` for multi-step outcomes (single undo step). Use atomic `photoshop_*` tools for fine-grained edits. Capture `document.id` from `get_state` and pass it as `document_id` on mutating calls so a Photoshop UI tab switch cannot retarget the edit. On failure, read structured error envelopes (`code`, `suggested_next_tool`) and call `get_state` before retrying.
 
 ## MCP client configuration
 

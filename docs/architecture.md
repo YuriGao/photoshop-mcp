@@ -153,7 +153,7 @@ photoshop-mcp/
 ## Design principles
 
 1. **Local-first** — API keys and OAuth tokens stay on disk; Photoshop runs locally.
-2. **State before action** — `photoshop_get_state` / `get_preview` / `get_capabilities` cheapen verification and vision checks.
+2. **State before action** — `photoshop_get_state` / `get_preview` / `get_capabilities` cheapen verification and vision checks. Mutating tools accept optional `document_id` so a Photoshop UI tab switch cannot retarget an edit.
 3. **Recipes over atomic chains** — fewer LLM turns, one undo per outcome.
 4. **Cross-platform parity** — same tool surface on macOS and Windows; platform quirks isolated in `src/platform/`.
 5. **Swappable AI providers** — registry pattern in `src/ui/providers/`; custom OpenAI-compatible endpoints supported.

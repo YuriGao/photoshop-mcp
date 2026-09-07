@@ -37,6 +37,7 @@ const ERROR_PATTERNS: Array<{
   code: PhotoshopErrorCode;
   suggested_next_tool?: string;
 }> = [
+  { pattern: /document_not_found/i, code: 'document_not_found', suggested_next_tool: 'photoshop_list_documents' },
   { pattern: /no active document/i, code: 'no_active_document', suggested_next_tool: 'photoshop_get_state' },
   { pattern: /no documents/i, code: 'no_active_document', suggested_next_tool: 'photoshop_get_state' },
   { pattern: /no active layer/i, code: 'no_active_layer', suggested_next_tool: 'photoshop_get_layers' },
