@@ -44,6 +44,7 @@ const DOC_FILES = [
   'architecture.md',
   'available-tools.md',
   'prompt-layer.md',
+  'standalone-ui.md',
   'development.md',
   'troubleshooting.md',
   'anonymous-usage-analytics.md',
