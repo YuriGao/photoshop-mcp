@@ -6,7 +6,7 @@ hero:
   text: AIでPhotoshopを操作
   tagline: Cursor、Claude Desktop、自然言語向けMCPサーバー — 118ツール、レシピワークフロー、スタンドアロンWeb UI。
   image:
-    src: /images/readme-hero.png
+    src: /images/readme-hero-v2.png
     alt: Photoshop MCP — AI駆動のPhotoshop自動化
   actions:
     - theme: brand

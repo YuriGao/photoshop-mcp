@@ -1,11 +1,11 @@
 /**
- * Generate images/readme-hero.png — dark, minimal typography hero.
+ * Generate images/readme-hero-v2.png — dark, minimal typography hero.
  *
  * Renders an SVG and screenshots it with headless Chrome (no new deps).
  * Override the Chrome binary with CHROME_PATH when needed.
  *
  * Run: npx tsx scripts/generate-hero-image.ts
- * Outputs: images/readme-hero.svg + images/readme-hero.png (1600x800)
+ * Outputs: images/readme-hero-v2.svg + images/readme-hero-v2.png (1600x800)
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -61,8 +61,8 @@ function chromePath(): string {
   return 'google-chrome';
 }
 
-const svgPath = join(IMAGES_DIR, 'readme-hero.svg');
-const pngPath = join(IMAGES_DIR, 'readme-hero.png');
+const svgPath = join(IMAGES_DIR, 'readme-hero-v2.svg');
+const pngPath = join(IMAGES_DIR, 'readme-hero-v2.png');
 writeFileSync(svgPath, svg);
 
 execFileSync(chromePath(), [

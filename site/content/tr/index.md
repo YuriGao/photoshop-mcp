@@ -6,7 +6,7 @@ hero:
   text: Photoshop'u yapay zeka ile yönetin
   tagline: Cursor, Claude Desktop ve doğal dil için MCP sunucusu — 118 araç, tarif iş akışları, bağımsız web UI.
   image:
-    src: /images/readme-hero.png
+    src: /images/readme-hero-v2.png
     alt: Photoshop MCP — Yapay zeka destekli Photoshop otomasyonu
   actions:
     - theme: brand
