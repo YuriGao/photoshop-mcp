@@ -66,6 +66,9 @@ const jsonLd = {
     'MCP server for Adobe Photoshop — 118 tools, generative AI, recipe workflows, and standalone web UI. Control Photoshop from Cursor, Claude, or natural language.',
   url: SITE_URL,
   downloadUrl: 'https://www.npmjs.com/package/@alisaitteke/photoshop-mcp',
+  codeRepository: 'https://github.com/alisaitteke/photoshop-mcp',
+  softwareHelp: `${SITE_URL}/docs/troubleshooting/`,
+  screenshot: OG_IMAGE,
   softwareVersion: pkg.version,
   author: {
     '@type': 'Person',
@@ -78,6 +81,35 @@ const jsonLd = {
     priceCurrency: 'USD',
   },
 };
+
+// Search Console verification — set GOOGLE_SITE_VERIFICATION at build time
+// to emit the verification meta tag.
+const googleVerification = process.env.GOOGLE_SITE_VERIFICATION;
+
+function breadcrumbJsonLd(pageData: {
+  relativePath: string;
+  title?: string;
+  frontmatter: Record<string, unknown>;
+}): [string, Record<string, string>, string] | null {
+  if (!pageData.relativePath.startsWith('docs/')) return null;
+  const slug = pageData.relativePath.replace(/\.md$/, '');
+  const title = (pageData.frontmatter.title as string | undefined) ?? pageData.title ?? slug;
+  const json = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Documentation',
+        item: `${SITE_URL}/docs/architecture/`,
+      },
+      { '@type': 'ListItem', position: 3, name: title, item: `${SITE_URL}/${slug}/` },
+    ],
+  };
+  return ['script', { type: 'application/ld+json' }, JSON.stringify(json)];
+}
 
 const sharedHead: Array<[string, Record<string, string> | string]> = [
   ['link', { rel: 'icon', href: '/ps-logo-icon.svg', type: 'image/svg+xml' }],
@@ -98,6 +130,9 @@ const sharedHead: Array<[string, Record<string, string> | string]> = [
   ['meta', { name: 'twitter:image', content: OG_IMAGE }],
   ['meta', { name: 'twitter:image:alt', content: 'Photoshop MCP — AI-driven Photoshop automation' }],
   ['script', { type: 'application/ld+json' }, JSON.stringify(jsonLd)],
+  ...(googleVerification
+    ? ([['meta', { name: 'google-site-verification', content: googleVerification }]] as const)
+    : []),
   ...hreflangTags(),
 ];
 
@@ -346,5 +381,7 @@ export default defineConfig({
       ['meta', { name: 'twitter:description', content: ogDescription }],
       ['meta', { name: 'description', content: ogDescription }],
     );
+    const breadcrumb = breadcrumbJsonLd(pageData);
+    if (breadcrumb) pageData.frontmatter.head.push(breadcrumb);
   },
 });
