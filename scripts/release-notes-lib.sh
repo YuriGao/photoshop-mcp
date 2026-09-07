@@ -32,13 +32,43 @@ format_commit_line() {
   echo "- ${linked} (\`${hash:0:7}\`)"
 }
 
+# release_commit_for_version PREV VERSION → newest commit after PREV whose package.json matches VERSION.
+release_commit_for_version() {
+  local prev="$1" version="$2" sha pkg_version
+  while IFS= read -r sha; do
+    [[ -z "$sha" ]] && continue
+    pkg_version="$(git show "${sha}:package.json" 2>/dev/null \
+      | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).version' 2>/dev/null || true)"
+    if [[ "$pkg_version" == "$version" ]]; then
+      echo "$sha"
+      return 0
+    fi
+  done < <(git log "${prev}..HEAD" --pretty=format:'%H' --no-merges 2>/dev/null || true)
+  return 1
+}
+
 # collect_commits PREV TAG → newline-separated hash|subject|author (no merges).
 collect_commits() {
-  local prev="$1" tag="$2"
+  local prev="$1"
+  local release_tag="$2"
+  local commits="" version="${release_tag#v}" end_ref="$release_tag"
   if [[ -n "$prev" ]]; then
-    git log "${prev}..${tag}" --pretty=format:'%H|%s|%an' --no-merges 2>/dev/null || true
+    commits="$(git log "${prev}..${release_tag}" --pretty=format:'%H|%s|%an' --no-merges 2>/dev/null || true)"
+    if [[ -z "$commits" ]]; then
+      local prev_sha tag_sha release_commit=""
+      prev_sha="$(git rev-parse "${prev}^{commit}" 2>/dev/null || true)"
+      tag_sha="$(git rev-parse "${release_tag}^{commit}" 2>/dev/null || true)"
+      if [[ -n "$prev_sha" && "$prev_sha" == "$tag_sha" ]]; then
+        release_commit="$(release_commit_for_version "$prev" "$version" || true)"
+        if [[ -n "$release_commit" ]]; then
+          end_ref="$release_commit"
+          commits="$(git log "${prev}..${end_ref}" --pretty=format:'%H|%s|%an' --no-merges 2>/dev/null || true)"
+        fi
+      fi
+    fi
+    printf '%s\n' "$commits"
   else
-    git log -30 "${tag}" --pretty=format:'%H|%s|%an' --no-merges 2>/dev/null || true
+    git log -30 "${release_tag}" --pretty=format:'%H|%s|%an' --no-merges 2>/dev/null || true
   fi
 }
 

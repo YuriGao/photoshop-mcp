@@ -136,3 +136,47 @@ Combine with a [Pexels MCP server](https://github.com/modelcontextprotocol/serve
 | **Color grade** | "Apply warm_film color grade as adjustment layers" |
 | **Frequency separation** | "Build FS stack at 6px — I'll paint the Low/High layers myself" |
 | **State check** | "Ping Photoshop, get capabilities, then get_state before editing" |
+
+## Context Tracking
+
+Each tool returns comprehensive context information about the current state of Photoshop, including:
+
+- **Document Info**: Name, dimensions, resolution, color mode, layer count
+- **Active Layer Info**: Name, type, opacity, blend mode, visibility, lock state
+- **Selection State**: Whether a selection is active
+- **Operation Result**: Specific details about what was changed
+
+This allows AI assistants to maintain awareness of which document is active,
+which layer is being worked on, and current layer properties across multiple
+commands.
+
+**Example Response:**
+```javascript
+{
+  "applied": true,
+  "filter": "Gaussian Blur",
+  "radius": 10,
+  "wasRasterized": true,
+  "context": {
+    "hasDocument": true,
+    "document": {
+      "name": "design.psd",
+      "width": 1920,
+      "height": 1080,
+      "resolution": 72,
+      "colorMode": "RGBColorMode",
+      "layerCount": 3,
+      "hasSelection": false
+    },
+    "activeLayer": {
+      "name": "Background",
+      "kind": "NORMAL",
+      "opacity": 100,
+      "blendMode": "NORMAL",
+      "visible": true,
+      "locked": false,
+      "isBackground": false
+    }
+  }
+}
+```

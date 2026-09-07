@@ -21,6 +21,11 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Validate release tag
+        run: |
+          PREV=$(git tag --sort=-v:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
+          bash scripts/validate-release-tag.sh "${GITHUB_REF_NAME}" "${PREV}"
+
       - name: Build release notes
         id: notes
         run: |
@@ -53,6 +58,11 @@ jobs:
         with:
           node-version: '20'
           registry-url: https://registry.npmjs.org
+
+      - name: Validate release tag
+        run: |
+          PREV=$(git tag --sort=-v:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
+          bash scripts/validate-release-tag.sh "${GITHUB_REF_NAME}" "${PREV}"
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund

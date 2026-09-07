@@ -129,6 +129,7 @@ const docsSidebar = [
       { text: 'Architecture', link: '/docs/architecture' },
       { text: 'Available Tools', link: '/docs/available-tools' },
       { text: 'Prompt Layer', link: '/docs/prompt-layer' },
+      { text: 'Standalone UI', link: '/docs/standalone-ui' },
       { text: 'Development', link: '/docs/development' },
       { text: 'Troubleshooting', link: '/docs/troubleshooting' },
       { text: 'Usage Analytics', link: '/docs/anonymous-usage-analytics' },
