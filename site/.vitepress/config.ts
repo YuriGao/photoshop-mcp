@@ -212,7 +212,8 @@ export default defineConfig({
 
     footer: {
       message: 'Unofficial project — not affiliated with Adobe Inc.',
-      copyright: 'MIT License · Ali Sait Teke',
+      copyright:
+        'Built by <a href="https://alisait.com" rel="noopener noreferrer" target="_blank">Ali Sait Teke</a> · <a href="https://www.linkedin.com/in/alisait/" rel="noopener noreferrer" target="_blank">LinkedIn</a>',
     },
 
     editLink: {
