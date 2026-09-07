@@ -6,7 +6,7 @@ hero:
   text: Photoshop mit KI steuern
   tagline: MCP-Server für Cursor, Claude Desktop und natürliche Sprache — 118 Tools, Recipe-Workflows, eigenständige Web-UI.
   image:
-    src: /images/readme-hero.png
+    src: /images/readme-hero-v2.png
     alt: Photoshop MCP — KI-gesteuerte Photoshop-Automatisierung
   actions:
     - theme: brand

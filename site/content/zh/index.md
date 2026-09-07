@@ -6,7 +6,7 @@ hero:
   text: 用 AI 控制 Adobe Photoshop
   tagline: 适用于 Cursor、Claude Desktop 和自然语言的 MCP 服务器 — 118 个工具、配方工作流、独立 Web UI。
   image:
-    src: /images/readme-hero.png
+    src: /images/readme-hero-v2.png
     alt: Photoshop MCP — AI 驱动的 Photoshop 自动化
   actions:
     - theme: brand

@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/alisaitteke/photoshop-mcp">
-    <img src="./images/readme-hero.png" alt="Photoshop MCP — AI 驱动的 Photoshop 自动化" width="100%" />
+    <img src="./images/readme-hero-v2.png" alt="Photoshop MCP — AI 驱动的 Photoshop 自动化" width="100%" />
   </a>
 </p>
 

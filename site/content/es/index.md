@@ -6,7 +6,7 @@ hero:
   text: Controla Photoshop con IA
   tagline: Servidor MCP para Cursor, Claude Desktop y lenguaje natural — 118 herramientas, flujos recipe y UI web independiente.
   image:
-    src: /images/readme-hero.png
+    src: /images/readme-hero-v2.png
     alt: Photoshop MCP — Automatización de Photoshop con IA
   actions:
     - theme: brand
