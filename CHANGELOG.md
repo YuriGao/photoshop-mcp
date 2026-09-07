@@ -5,7 +5,9 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.5] - 2026-09-07
+
+[v1.7.4...HEAD](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.4...HEAD)
 
 ### Fixes
 
@@ -16,6 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional `document_id` on mutating tools pins edits to a document from `get_state` / `list_documents`; `document.id` is included in context.
 - Drop shadow no longer sets a locale-specific "Linear" contour name; Color Range fallback writes both Lab min and max; `place_image` fails instead of silently skipping translate.
 - Wrap generative `prompt` values in ExtendScript string literals (`jsStringLiteral`); non-ASCII is `\uXXXX`-escaped so multi-word prompts no longer break JSX syntax ([#31](https://github.com/alisaitteke/photoshop-mcp/issues/31)).
+- Apply the detected Photoshop app name on macOS before the first ExtendScript run ([#32](https://github.com/alisaitteke/photoshop-mcp/pull/32)).
+
+### Docs
+
+- Simplify the README landing page, restore badges, and regenerate the hero image.
+- Improve site SEO and AI-search readiness; point the marketing site at photoshop-mcp.com; serve trailing-slash doc URLs on GitHub Pages; link the footer to alisait.com and LinkedIn.
+
+### Other
+
+- Validate release tags and recover notes when a tag points at the wrong commit.
+
+## [1.7.4] - 2026-08-29
+
+[v1.7.3...f8ada83](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.3...f8ada83)
+
+### Other
+
+- Expand atomic tool surface to 118 tools and sync agent documentation. (`5a9d3cd`)
 
 ## [1.7.3] - 2026-08-25
 
@@ -390,12 +410,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 1.1.1 (`5cac9c1`)
 - 1.1.0 (`6e1c1f0`)
 - 1.0.0 (`17d8d91`)
-
-## [1.7.4] - 2026-08-29
-
-[v1.7.3...f8ada83](https://github.com/alisaitteke/photoshop-mcp/compare/v1.7.3...f8ada83)
-
-### Other
-
-- Expand atomic tool surface to 118 tools and sync agent documentation. (`5a9d3cd`)
 
