@@ -1,4 +1,4 @@
-# Deploy marketing site to GitHub Pages (alisaitteke.github.io/photoshop-mcp)
+# Deploy marketing site to GitHub Pages (photoshop-mcp.com)
 name: Deploy Pages
 
 on:

@@ -6,7 +6,7 @@ import { defineConfig } from 'vitepress';
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'));
 
-const SITE_URL = 'https://alisaitteke.github.io/photoshop-mcp';
+const SITE_URL = 'https://photoshop-mcp.com';
 const OG_IMAGE = `${SITE_URL}/images/og-social.png`;
 const LLMS_URL = `${SITE_URL}/llms.txt`;
 const LLMS_FULL_URL = `${SITE_URL}/llms-full.txt`;
@@ -180,7 +180,7 @@ export default defineConfig({
   srcDir: 'content',
   cleanUrls: true,
   lastUpdated: true,
-  base: '/photoshop-mcp/',
+  base: '/',
   outDir: '.vitepress/dist',
 
   head: sharedHead,

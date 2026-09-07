@@ -1,10 +1,10 @@
-# https://alisaitteke.github.io/photoshop-mcp/
+# https://photoshop-mcp.com/
 User-agent: *
 Allow: /
 
-# Agent index (llmstxt.org v2): https://alisaitteke.github.io/photoshop-mcp/llms.txt
-# Full corpus digest: https://alisaitteke.github.io/photoshop-mcp/llms-full.txt
-# AI policy signal: https://alisaitteke.github.io/photoshop-mcp/ai.txt
+# Agent index (llmstxt.org v2): https://photoshop-mcp.com/llms.txt
+# Full corpus digest: https://photoshop-mcp.com/llms-full.txt
+# AI policy signal: https://photoshop-mcp.com/ai.txt
 
 # Retrieval / search crawlers (allow for citations and AI answers)
 User-agent: ChatGPT-User
@@ -41,4 +41,4 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-Sitemap: https://alisaitteke.github.io/photoshop-mcp/sitemap.xml
+Sitemap: https://photoshop-mcp.com/sitemap.xml

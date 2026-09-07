@@ -1,5 +1,5 @@
 /**
- * Generate llms.txt, llms-full.txt for the GitHub Pages site (llmstxt.org v2).
+ * Generate llms.txt, llms-full.txt for the marketing site (llmstxt.org v2).
  * Run: npx tsx scripts/generate-site-discoverability.ts
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SITE_PUBLIC = join(ROOT, 'site', 'public');
-const SITE_URL = 'https://alisaitteke.github.io/photoshop-mcp';
+const SITE_URL = 'https://photoshop-mcp.com';
 
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 

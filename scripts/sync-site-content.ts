@@ -19,7 +19,7 @@ const SITE = join(ROOT, 'site');
 const CONTENT = join(SITE, 'content');
 const PUBLIC_IMAGES = join(SITE, 'public', 'images');
 
-const SITE_URL = 'https://alisaitteke.github.io/photoshop-mcp';
+const SITE_URL = 'https://photoshop-mcp.com';
 const GITHUB_REPO = 'https://github.com/alisaitteke/photoshop-mcp';
 
 const LOCALES = [

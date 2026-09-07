@@ -6,7 +6,7 @@
   </a>
 </p>
 
-**Languages:** English · [简体中文](README.zh-CN.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [日本語](README.ja.md) · [Türkçe](README.tr.md) · **[Website](https://alisaitteke.github.io/photoshop-mcp/)**
+**Languages:** English · [简体中文](README.zh-CN.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [日本語](README.ja.md) · [Türkçe](README.tr.md) · **[Website](https://photoshop-mcp.com/)**
 
 [![npm version](https://img.shields.io/npm/v/@alisaitteke/photoshop-mcp.svg)](https://www.npmjs.com/package/@alisaitteke/photoshop-mcp)
 [![GitHub release](https://img.shields.io/github/v/release/alisaitteke/photoshop-mcp?include_prereleases)](https://github.com/alisaitteke/photoshop-mcp/releases)
@@ -16,7 +16,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-lightgrey.svg)]()
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.alisaitteke%2Fphotoshop--mcp-purple.svg)](https://registry.modelcontextprotocol.io)
 [![MCP Toplist](https://mcptoplist.com/badge/io.github.alisaitteke%2Fphotoshop-mcp.svg)](https://mcptoplist.com/server/io.github.alisaitteke%2Fphotoshop-mcp)
-[![Website](https://img.shields.io/badge/website-photoshop--mcp-cyan.svg)](https://alisaitteke.github.io/photoshop-mcp/)
+[![Website](https://img.shields.io/badge/website-photoshop--mcp-cyan.svg)](https://photoshop-mcp.com/)
 
 **Chat with Photoshop like a colleague.** Describe what you want in plain words —
 "remove this background", "resize these for Instagram" — and your AI assistant

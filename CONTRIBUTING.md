@@ -155,7 +155,7 @@ artifacts.
 
 ## Site development (GitHub Pages)
 
-Marketing site: [alisaitteke.github.io/photoshop-mcp](https://alisaitteke.github.io/photoshop-mcp/)
+Marketing site: [photoshop-mcp.com](https://photoshop-mcp.com/)
 
 | Path | Purpose |
 | --- | --- |

@@ -57,7 +57,7 @@ npx -p @alisaitteke/photoshop-mcp photoshop-mcp-ui
 
 **Prerequisites:** Adobe Photoshop running on Windows or macOS, Node.js 18+.
 
-![Standalone UI](https://alisaitteke.github.io/photoshop-mcp/images/frame_generic_light.png)
+![Standalone UI](https://photoshop-mcp.com/images/frame_generic_light.png)
 
 ## Why this exists
 

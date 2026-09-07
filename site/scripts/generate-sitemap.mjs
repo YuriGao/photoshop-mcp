@@ -1,5 +1,5 @@
 /**
- * Post-build sitemap for GitHub Pages + copy public assets into dist.
+ * Post-build sitemap for the marketing site + copy public assets into dist.
  */
 import { cpSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const SITE_ROOT = join(fileURLToPath(import.meta.url), '..', '..');
 const DIST = join(SITE_ROOT, '.vitepress', 'dist');
 const PUBLIC = join(SITE_ROOT, 'public');
-const BASE_URL = 'https://alisaitteke.github.io/photoshop-mcp';
+const BASE_URL = 'https://photoshop-mcp.com';
 
 function copyPublicAssets() {
   for (const name of readdirSync(PUBLIC)) {
