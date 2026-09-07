@@ -155,6 +155,8 @@ Analytics are processed by [PostHog](https://posthog.com/).
 
 - **Browser UI:** posthog-js → ingest via `POSTHOG_API_HOST` (default reverse proxy
   at `https://a.alisait.com`)
+- **Marketing / docs site** ([photoshop-mcp.com](https://photoshop-mcp.com/)): posthog-js
+  in the VitePress theme → same reverse proxy and project
 - **MCP stdio and UI server:** posthog-node with the embedded project key — works on
   every `npx` install without user env configuration
 - **Project UI:** `https://eu.posthog.com` (override with `POSTHOG_UI_HOST`)
@@ -166,10 +168,27 @@ via PostHog `identify()` and `$set_once`.
 See the [PostHog privacy policy](https://posthog.com/privacy) for how PostHog
 handles data on their side.
 
-### Documentation site
+### Marketing / documentation site
 
-The GitHub Pages documentation site (VitePress under `site/`) does **not** load any
-analytics scripts. Docs traffic is not tracked.
+The GitHub Pages site (VitePress under `site/`, [photoshop-mcp.com](https://photoshop-mcp.com/))
+loads posthog-js in production and sends events to the same PostHog project as MCP and
+the standalone UI, via `https://a.alisait.com`.
+
+- Super properties: `event_source: site`, `usage_surface: site`, `site_locale`
+- `$pageview` / `$pageleave` on VitePress client navigation (hash-only changes are ignored)
+- Autocapture is on (heatmaps / web vitals); session replay is **not** enabled
+- Visitors are **not** identified — `person_profiles: 'identified_only'` so site traffic
+  does not create person profiles or merge with MCP install IDs
+- Localhost / `127.0.0.1` does not initialize the SDK
+
+Named conversion events (no command text or PII):
+
+| Event | When | Key properties |
+| --- | --- | --- |
+| `site_cta_clicked` | Hero, nav, footer, or body CTA | `cta_id` (`quick_start` \| `documentation` \| `github` \| `npm` \| `mcp_registry`), `cta_location` |
+| `site_code_copied` | VitePress copy button on a code block | `command` (`mcp` \| `ui` \| `other`) |
+| `site_outbound_clicked` | External link that is not a named CTA | `destination`, `href_host` |
+| `site_locale_changed` | Language switcher | `from`, `to` |
 
 ### Geolocation
 
@@ -190,6 +209,9 @@ Browser events also send `browser_locale_region` as a secondary hint.
 | Session duration | Average `duration_ms` on `mcp_session_ended` or `ui_server_ended` |
 | MCP vs UI usage | Person property `usage_surfaces` (comma-separated: `mcp`, `server`, `web`) |
 | Standalone UI model | Person `active_provider` / `active_model` or event `ui_model_selected` |
+| Marketing site traffic | Filter `$pageview` where `event_source = site` (or host `photoshop-mcp.com`) |
+| Install copy conversion | `site_code_copied` segmented by `command` |
+| Site CTA funnel | `site_cta_clicked` segmented by `cta_id` / `cta_location` |
 
 ## How to opt out
 
