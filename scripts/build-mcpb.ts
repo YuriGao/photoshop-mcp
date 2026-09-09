@@ -60,7 +60,6 @@ function main(): void {
   writeFileSync(join(STAGING, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 
   cpSync(join(ROOT, 'dist'), join(SERVER_DIR, 'dist'), { recursive: true });
-  cpSync(join(ROOT, 'web', 'dist'), join(SERVER_DIR, 'web', 'dist'), { recursive: true });
   cpSync(join(ROOT, 'uxp-plugin'), join(SERVER_DIR, 'uxp-plugin'), { recursive: true });
   copyFileSync(join(ROOT, 'LICENSE'), join(SERVER_DIR, 'LICENSE'));
 

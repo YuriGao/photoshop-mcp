@@ -1,5 +1,4 @@
 import { Logger } from '../utils/logger.js';
-import { capture, captureAnalyticsMilestoneOnce, identifyPhotoshopVersion } from '../analytics/index.js';
 import { PhotoshopConnection } from '../platform/connection.js';
 
 export interface SessionConfig {
@@ -31,8 +30,7 @@ export class Session {
     this.logger.info('Initializing session...');
 
     if (this.config.autoConnect) {
-      const connected = await this.connect();
-      this.captureConnectionEvent(connected);
+      await this.connect();
     }
   }
 
@@ -45,7 +43,6 @@ export class Session {
         this.isConnected = true;
         this.updateActivity();
         this.logger.info('Successfully connected to Photoshop');
-        void this.refreshPhotoshopVersionOnPerson();
         return true;
       } else {
         this.isConnected = false;
@@ -76,7 +73,6 @@ export class Session {
     }
 
     this.logger.error('Failed to reconnect after all attempts');
-    this.captureConnectionEvent(false);
     return false;
   }
 
@@ -99,30 +95,6 @@ export class Session {
 
   updateActivity(): void {
     this.lastActivity = new Date();
-  }
-
-  private captureConnectionEvent(connected: boolean): void {
-    capture('mcp_photoshop_connection', {
-      ok: connected,
-      photoshop_connected: connected,
-      ...(connected ? {} : { error_code: 'photoshop_unreachable' }),
-      event_source: 'mcp',
-    });
-
-    if (connected) {
-      captureAnalyticsMilestoneOnce('mcp_photoshop_first_connected', {
-        event_source: 'mcp',
-      });
-    }
-  }
-
-  private async refreshPhotoshopVersionOnPerson(): Promise<void> {
-    try {
-      const version = await this.connection.getVersion();
-      identifyPhotoshopVersion(version);
-    } catch {
-      // Best-effort person enrichment only.
-    }
   }
 
   private delay(ms: number): Promise<void> {

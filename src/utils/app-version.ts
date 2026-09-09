@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 let cachedVersion: string | undefined;
 
-/** Package version from the repo root package.json — attached to every server-side event. */
+/** Package version from the repo root package.json — reported as the MCP server version. */
 export function getAppVersion(): string {
   if (cachedVersion) return cachedVersion;
   try {

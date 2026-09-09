@@ -4,7 +4,7 @@
   "name": "photoshop-mcp",
   "display_name": "Photoshop MCP",
   "version": "0.0.0",
-  "description": "MCP server for Adobe Photoshop — tools, recipes, generative AI, and standalone UI.",
+  "description": "MCP server for Adobe Photoshop — tools, recipes, and generative AI.",
   "long_description": "Control Adobe Photoshop from AI assistants (Cursor, Claude Desktop, etc.). Requires Photoshop running on macOS or Windows and Node.js 18+.",
   "author": {
     "name": "Ali Sait Teke",

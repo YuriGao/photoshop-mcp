@@ -7,7 +7,6 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { Logger } from '../utils/logger.js';
-import { capture, onMcpClientConnected, onMcpClientDisconnected, recordMcpToolCall } from '../analytics/index.js';
 import { ToolRegistry, ToolDefinition } from './tool-registry.js';
 import { PromptRegistry } from './prompt-registry.js';
 import { Session } from './session.js';
@@ -81,7 +80,7 @@ export class PhotoshopMCPServer {
     const tool = withOptionalDocumentId(definition.tool);
     this.toolRegistry.register(tool.name, {
       tool,
-      handler: wrapToolHandler(tool.name, wrapDocumentIdHandler(definition.handler)),
+      handler: wrapToolHandler(wrapDocumentIdHandler(definition.handler)),
     });
   }
 
@@ -169,34 +168,17 @@ export class PhotoshopMCPServer {
       const name = request.params.name;
       const args = (request.params.arguments as Record<string, string>) || {};
       this.logger.debug(`Prompt requested: ${name}`);
-      capture('mcp_prompt_requested', {
-        prompt_name: name,
-        event_source: 'mcp',
-      });
       return await this.promptRegistry.get(name, args);
     });
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const toolName = request.params.name;
-      const started = Date.now();
       this.logger.debug(`Tool called: ${toolName}`);
 
-      try {
-        const args = (request.params.arguments as Record<string, unknown>) || {};
-        const result = await this.toolRegistry.execute(toolName, args);
-        this.session.updateActivity();
-        return result;
-      } catch (error) {
-        if (error instanceof Error && error.message.startsWith('Tool not found:')) {
-          recordMcpToolCall({
-            toolName,
-            ok: false,
-            errorCode: 'tool_not_found',
-            durationMs: Date.now() - started,
-          });
-        }
-        throw error;
-      }
+      const args = (request.params.arguments as Record<string, unknown>) || {};
+      const result = await this.toolRegistry.execute(toolName, args);
+      this.session.updateActivity();
+      return result;
     });
   }
 
@@ -250,13 +232,6 @@ export class PhotoshopMCPServer {
 
   async start() {
     await this.session.initialize();
-
-    this.server.oninitialized = () => {
-      onMcpClientConnected(this.server.getClientVersion());
-    };
-    this.server.onclose = () => {
-      onMcpClientDisconnected();
-    };
 
     const transport = new StdioServerTransport();
     await this.server.connect(transport);

@@ -1,7 +1,7 @@
 # AGENTS.md — photoshop-mcp
 
 > **Navigation map, not a reference manual.**
-> Start with [llms.txt](llms.txt) or the site index [llms.txt](https://photoshop-mcp.com/llms.txt), then follow links as needed.
+> Start with [llms.txt](llms.txt), then follow links as needed.
 
 ## Entry strategy
 
@@ -9,7 +9,6 @@
 | -------- | ---- |
 | Cursor / Claude Desktop / VS Code | Configure `mcpServers` → `npx -y @alisaitteke/photoshop-mcp` (stdio) |
 | Claude Code | `claude mcp add photoshop -- npx -y @alisaitteke/photoshop-mcp` |
-| Standalone chat UI (no IDE) | `npx -p @alisaitteke/photoshop-mcp photoshop-mcp-ui` |
 | Local development | `npm install && npm run build && node dist/index.js` — see [docs/development.md](docs/development.md) |
 
 **Prerequisites:** Photoshop running on Windows or macOS, Node.js 18+. This is unofficial and not affiliated with Adobe.
@@ -19,7 +18,7 @@
 ## Architecture (agent view)
 
 ```
-AI host (Cursor / Claude / UI)
+AI host (Cursor / Claude / VS Code)
   │  MCP stdio
   ▼
 PhotoshopMCPServer (Node.js)
@@ -78,7 +77,6 @@ Examples: [examples/cursor-config.json](examples/cursor-config.json), [examples/
 | -------- | ------- |
 | `LOG_LEVEL` | `0`=DEBUG, `1`=INFO, `2`=WARN, `3`=ERROR |
 | `PHOTOSHOP_PATH` | Optional custom Photoshop install path |
-| `PSMCP_UI_TOKEN` | Pin standalone UI API token (see README) |
 
 ## Troubleshooting (common agent blockers)
 

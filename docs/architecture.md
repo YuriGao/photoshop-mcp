@@ -16,14 +16,10 @@ The project is a **local-first bridge** between MCP-capable AI hosts (Cursor, Cl
 flowchart TB
   subgraph hosts [AI hosts]
     IDE[Cursor / Claude Desktop]
-    UI[Standalone Web UI]
   end
 
   subgraph node [Node.js process]
     MCP[PhotoshopMCPServer]
-    Hono[Hono HTTP server]
-    Agent[Agent layer]
-    SQLite[(SQLite ~/.photoshop-mcp)]
   end
 
   subgraph ps [Adobe Photoshop]
@@ -32,10 +28,6 @@ flowchart TB
   end
 
   IDE -->|stdio MCP| MCP
-  UI --> Agent
-  Agent -->|stdio MCP| MCP
-  Hono --> UI
-  Hono --> SQLite
   MCP -->|AppleScript / COM| ES
   MCP -->|HTTP poll 127.0.0.1:38452| UXP
 ```
@@ -47,8 +39,6 @@ flowchart TB
 | **Tools** | 102 atomic + 16 recipe (118 total) | `src/tools/` |
 | **Prompt layer** | Server instructions, 23 MCP prompt templates | `src/prompts/` |
 | **Errors** | Structured envelopes for agent self-correction | `src/errors/envelope.ts` |
-| **Standalone UI** | Hono API, multi-provider agent, chat persistence | `src/ui/`, `web/` |
-| **Analytics** | Opt-out anonymous usage (PostHog) | `src/analytics/` |
 
 ---
 
@@ -98,28 +88,6 @@ Full prompt-layer mapping: [`docs/prompt-layer.md`](prompt-layer.md).
 
 ---
 
-## Standalone web UI
-
-Shipped in the same npm package (`photoshop-mcp-ui` bin). Stack:
-
-| Concern | Choice |
-| ------- | ------ |
-| Frontend | Vue 3, Tailwind v4, shadcn-vue |
-| Backend | Hono on Node (`src/ui/server.ts`) |
-| Persistence | better-sqlite3 at `~/.photoshop-mcp/data.db` |
-| LLM (API key) | Vercel AI SDK — Anthropic, OpenAI, Google, OpenRouter |
-| LLM (CLI account) | Claude Agent SDK / Gemini CLI headless |
-| Photoshop | Same MCP server over stdio (`src/ui/agent/mcp-transport.ts`) |
-
-### Agent modes
-
-1. **Default (ReAct)** — model calls tools iteratively; `src/ui/agent/api-key.ts` and provider-specific CLI paths.
-2. **Action Plan (beta)** — one planning LLM call produces an ordered tool list; direct execution with bounded repair (`src/ui/agent/action-plan.ts`). Fewer round-trips for multi-step prompts.
-
-The UI restricts the agent to **Photoshop MCP tools only** — no shell, filesystem, or web tools from the host.
-
----
-
 ## Error recovery contract
 
 [`src/errors/envelope.ts`](../src/errors/envelope.ts) classifies ExtendScript/runtime failures into typed codes (`no_active_document`, `version_unsupported`, `generative_unavailable`, …) and suggests the next tool (`photoshop_get_state`, `photoshop_get_capabilities`, etc.).
@@ -139,11 +107,8 @@ photoshop-mcp/
 │   ├── tools/             # Atomic + recipe MCP tools
 │   ├── prompts/           # Instructions + prompt templates
 │   ├── errors/            # Structured error envelopes
-│   ├── analytics/         # Anonymous usage telemetry
-│   └── ui/                # Standalone UI server, agent, providers, store
-├── web/                   # Vue SPA (built to web/dist, bundled in npm)
+│   └── utils/             # Logging, ExtendScript helpers
 ├── docs/                  # Architecture, development, prompt layer, …
-├── images/                # README screenshots, OG social preview
 ├── uxp-plugin/            # Optional UXP bridge for Neural Filters
 └── scripts/               # Integration tests, spike probes, release tooling
 ```
@@ -156,8 +121,7 @@ photoshop-mcp/
 2. **State before action** — `photoshop_get_state` / `get_preview` / `get_capabilities` cheapen verification and vision checks. Mutating tools accept optional `document_id` so a Photoshop UI tab switch cannot retarget an edit.
 3. **Recipes over atomic chains** — fewer LLM turns, one undo per outcome.
 4. **Cross-platform parity** — same tool surface on macOS and Windows; platform quirks isolated in `src/platform/`.
-5. **Swappable AI providers** — registry pattern in `src/ui/providers/`; custom OpenAI-compatible endpoints supported.
-6. **Observable, not invasive** — analytics are anonymous and opt-out (`ANALYTICS_DISABLED=1`).
+5. **Observable, not invasive** — errors are structured and typed, so hosts can self-correct instead of guessing.
 
 ---
 
@@ -174,7 +138,7 @@ photoshop-mcp/
 
 **Ali Sait Teke** — Full-Stack engineer and AI-era software architect (Python, Go, Node.js, React, Next.js, Vue).
 
-This project demonstrates end-to-end systems work: MCP protocol integration, cross-platform desktop automation, structured error design for LLM agents, and a production-minded local UI — built as open source for the creative-automation and developer-tools community.
+This project demonstrates end-to-end systems work: MCP protocol integration, cross-platform desktop automation, and structured error design for LLM agents — built as open source for the creative-automation and developer-tools community.
 
 - **Portfolio:** [alisait.com](https://alisait.com)
 - **GitHub:** [github.com/alisaitteke](https://github.com/alisaitteke)
